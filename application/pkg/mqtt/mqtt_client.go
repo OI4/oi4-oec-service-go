@@ -1,0 +1,110 @@
+package mqtt
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"time"
+
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	oi4 "github.com/mzeiher/oi4/api/v1"
+	"github.com/mzeiher/oi4/application/pkg/tls"
+)
+
+var (
+	ErrNoAuthInformation = errors.New("no auth information provided, please provide either a mTLS certificate or username/password")
+)
+
+type MQTTClientOptions struct {
+	Host                          string
+	Tls                           bool
+	Port                          int
+	Username                      string
+	Password                      string
+	Client_private_key_pem        string
+	Client_private_key_passphrase string
+	Client_certificate_pem        string
+	Ca_certificate_pem            string
+	TlsVerify                     bool
+}
+
+type MQTTClient struct {
+	client mqtt.Client
+}
+
+func NewMQTTClient(options *MQTTClientOptions) (*MQTTClient, error) {
+	client_options := mqtt.NewClientOptions()
+
+	client_options.SetClientID("client")
+	if options.Tls {
+		client_options.AddBroker(fmt.Sprintf("ssl://%s:%d", options.Host, options.Port))
+		tls_config, err := tls.NewTLSConfig(options.Ca_certificate_pem, options.Client_certificate_pem, options.Client_private_key_pem, options.TlsVerify)
+		if err != nil {
+			return nil, err
+		}
+		client_options.SetTLSConfig(tls_config)
+	} else {
+		client_options.AddBroker(fmt.Sprintf("tcp://%s:%d", options.Host, options.Port))
+	}
+
+	if options.Username != "" && options.Password != "" {
+		client_options.Username = options.Username
+		client_options.Password = options.Password
+	}
+
+	client := mqtt.NewClient(client_options)
+
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return nil, token.Error()
+	} else {
+		return &MQTTClient{client: client}, nil
+	}
+}
+
+func (client *MQTTClient) PublishResource(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, resource oi4.Resource, source *oi4.Oi4Identifier, resourceData interface{}) error {
+	asset := ""
+	if source != nil {
+		asset = fmt.Sprintf("/%s", source.ToString())
+	}
+	topic := fmt.Sprintf("Oi4/%s/%s/pub/%s%s", serviceType, oi4Identifier.ToString(), resource, asset)
+	marshalledString, err := json.Marshal(CreateNetworkMessage(oi4Identifier, serviceType, resource, source, resourceData))
+	if err != nil {
+		return err
+	}
+
+	if token := client.client.Publish(topic, 0, false, string(marshalledString)); token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	return nil
+}
+
+func (client *MQTTClient) PublishData(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, source *oi4.Oi4Identifier, data oi4.Oi4Data) error {
+	return client.PublishResource(oi4Identifier, serviceType, oi4.Resource_Data, source, data)
+}
+
+func (client *MQTTClient) Stop() {
+	client.client.Disconnect(1000)
+}
+
+// quick and dirty
+func CreateNetworkMessage(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, resourceType oi4.Resource, source *oi4.Oi4Identifier, payload interface{}) *oi4.NetworkMessage {
+	currentTime := time.Now().UTC()
+
+	networkMessage := &oi4.NetworkMessage{
+		MessageId:      fmt.Sprintf("%d-%s/%s", currentTime.Unix(), serviceType, oi4Identifier.ToString()),
+		MessageType:    oi4.UA_DATA,
+		PublisherId:    fmt.Sprintf("%s/%s", serviceType, oi4Identifier.ToString()),
+		DataSetClassId: resourceType.ToDataSetClassId(),
+		Messages: []*oi4.DataSetMessage{
+			{
+				Timestamp:       currentTime.Format(time.RFC3339),
+				DataSetWriterId: 10,
+				Source:          oi4.Oi4IdentifierPath(oi4Identifier.ToString()),
+				Payload:         payload,
+			},
+		},
+	}
+
+	return networkMessage
+
+}
