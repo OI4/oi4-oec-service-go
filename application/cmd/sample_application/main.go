@@ -37,7 +37,7 @@ func main() {
 		counter := 0
 		for {
 			<-ticker.C
-			dataPublication.SetData(counter)
+			dataPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
 			counter++
 		}
 
