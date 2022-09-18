@@ -60,3 +60,6 @@ why not timestamp GUID? -> source info is encoded in "Source" so no need for oi4
 
 # Webhook support for "bigger messages"
 Maybe some kind of webhook request/info for other application to query blobs or more data if available
+
+# Publication Mode
+Interval intermediate what happens if application and asset also application with interval

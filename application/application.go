@@ -1,6 +1,8 @@
 package application
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -8,7 +10,14 @@ import (
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
 )
 
+var (
+	ErrPublisherAlreadyRegistered                       = errors.New("a publication with the same resource is already registered")
+	ErrPublicationAlreadyRegisteredOnAnotherApplication = errors.New("the publication is already registered on an asset or application")
+)
+
 type Oi4Application struct {
+	Publisher
+
 	mam         *oi4.MasterAssetModel
 	serviceType oi4.ServiceType
 
@@ -17,21 +26,77 @@ type Oi4Application struct {
 	assets     map[oi4.Oi4IdentifierPath]*Oi4Asset
 	assetMutex sync.Mutex
 
-	health oi4.Health
-	data   oi4.Oi4Data
+	publicationsList map[oi4.Resource]*Publication
+	publicationMutex sync.Mutex
 
 	stopHealthInterval chan struct{}
 }
 
+// Create a new Application
+//
+// The application needs to be started and connected with the Connect Method
+//
 func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel) *Oi4Application {
-	return &Oi4Application{
-		mam:                mam,
-		serviceType:        serviceType,
-		assetMutex:         sync.Mutex{},
-		assets:             make(map[oi4.Oi4IdentifierPath]*Oi4Asset),
-		health:             oi4.Health{Health: oi4.Health_Normal, HealthScore: 100},
-		stopHealthInterval: make(chan struct{}),
+	application := &Oi4Application{
+		mam:         mam,
+		serviceType: serviceType,
+
+		assets:     make(map[oi4.Oi4IdentifierPath]*Oi4Asset),
+		assetMutex: sync.Mutex{},
+
+		publicationsList: make(map[oi4.Resource]*Publication),
+		publicationMutex: sync.Mutex{},
 	}
+
+	application.RegisterPublication(CreatePublication(oi4.Resource_Health, oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
+	application.RegisterPublication(CreatePublication(oi4.Resource_MAM, mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
+
+	return application
+}
+
+func (app *Oi4Application) RegisterPublication(publication *Publication) error {
+	app.publicationMutex.Lock()
+	defer app.publicationMutex.Unlock()
+
+	if app.publicationsList[publication.resource] != nil {
+		return ErrPublisherAlreadyRegistered
+	}
+
+	if publication.parent != nil {
+		return ErrPublicationAlreadyRegisteredOnAnotherApplication
+	}
+
+	publication.parent = app
+	app.publicationsList[publication.resource] = publication
+	publication.start()
+
+	return nil
+}
+
+// // Do we need this?!
+// func (app *Oi4Application) RemovePublication(publication *Publication) *Publication {
+// 	app.publicationMutex.Lock()
+// 	defer app.publicationMutex.Unlock()
+
+// 	delete(app.publicationsList, publication.resource)
+// 	publication.parent = nil
+// 	publication.stop()
+
+// 	return publication
+// }
+
+func (app *Oi4Application) GetPublications() []oi4.Resource {
+	app.publicationMutex.Lock()
+	defer app.publicationMutex.Unlock()
+
+	resources := make([]oi4.Resource, len(app.publicationsList))
+	i := 0
+	for key, _ := range app.publicationsList {
+		resources[i] = key
+		i++
+	}
+
+	return resources
 }
 
 func (app *Oi4Application) RegisterAsset(asset *Oi4Asset) {
@@ -51,15 +116,27 @@ func (app *Oi4Application) RemoveAsset(asset *Oi4Asset) {
 }
 
 func (app *Oi4Application) UpdateHealth(health oi4.Health) {
-	app.health = health
+	app.publicationsList[oi4.Resource_Health].SetData(health)
 }
 
 func (app *Oi4Application) UpdateData(data oi4.Oi4Data) {
-	app.data = data
+	app.publicationsList[oi4.Resource_Data].SetData(data)
 }
 
-func (app *Oi4Application) AddCallReplyHandler(handler interface{}) {
-	panic("not implemented")
+func (app *Oi4Application) publishPublication(publication PublicationCommand) {
+	if app.mqttClient != nil && publication.data != nil {
+		topic := fmt.Sprintf("Oi4/%s/%s/pub/%s", app.serviceType, app.mam.ToOi4Identifier().ToString(), publication.resource)
+		if publication.source != nil &&
+			(publication.publicationMode == oi4.PublicationMode_SOURCE_3 ||
+				publication.publicationMode == oi4.PublicationMode_APPLICATION_SOURCE_FILTER_8 ||
+				publication.publicationMode == oi4.PublicationMode_SOURCE_FILTER_7 ||
+				publication.publicationMode == oi4.PublicationMode_APPLICATION_SOURCE_5) {
+			topic = fmt.Sprintf("%s/%s", topic, publication.source.ToString())
+		}
+
+		app.mqttClient.PublishResource(topic, createNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, nil, publication.dataSetWriterId, publication.data))
+
+	}
 }
 
 func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) error {
@@ -69,20 +146,10 @@ func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) erro
 	}
 	app.mqttClient = client
 
-	client.PublishResource(app.mam.ToOi4Identifier(), app.serviceType, oi4.Resource_MAM, nil, app.mam)
+	// trigger publications
+	app.publicationsList[oi4.Resource_MAM].triggerPublication(false, true)
+	app.publicationsList[oi4.Resource_Health].triggerPublication(false, true)
 
-	ticker := time.NewTicker(time.Second * 30)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				client.PublishResource(app.mam.ToOi4Identifier(), app.serviceType, oi4.Resource_Health, nil, app.health)
-			case <-app.stopHealthInterval:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
 	return nil
 }
 

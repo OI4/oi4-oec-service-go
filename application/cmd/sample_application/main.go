@@ -1,7 +1,10 @@
 package main
 
 import (
+	"time"
+
 	oi4 "github.com/mzeiher/oi4/api/v1"
+	v1 "github.com/mzeiher/oi4/api/v1"
 	"github.com/mzeiher/oi4/application"
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
 )
@@ -10,10 +13,10 @@ func main() {
 
 	oi4Application := application.CreateNewApplication(oi4.ServiceType_OTConnector, &oi4.MasterAssetModel{
 		Manufacturer: oi4.LocalizedText{
-			"en_us": "Bitschuber",
+			"en_us": "Bitschubser",
 		},
 		ManufacturerUri:    "bitschubser.de",
-		Model:              "WeatherStuff",
+		Model:              "SampleApplication",
 		ProductCode:        "08",
 		HardwareRevision:   "0",
 		SoftwareRevision:   "0",
@@ -27,6 +30,20 @@ func main() {
 			"en_us": "Cooles Teil",
 		},
 	})
+
+	dataPublication := application.CreatePublication(v1.Resource_Data, nil).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		counter := 0
+		for {
+			<-ticker.C
+			dataPublication.SetData(counter)
+			counter++
+		}
+
+	}()
+
+	oi4Application.RegisterPublication(dataPublication)
 
 	if err := oi4Application.Start(&mqtt.MQTTClientOptions{
 		Host:     "localhost",

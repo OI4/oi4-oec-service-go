@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	oi4 "github.com/mzeiher/oi4/api/v1"
 	"github.com/mzeiher/oi4/application/pkg/tls"
 )
 
@@ -61,13 +59,8 @@ func NewMQTTClient(options *MQTTClientOptions) (*MQTTClient, error) {
 	}
 }
 
-func (client *MQTTClient) PublishResource(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, resource oi4.Resource, source *oi4.Oi4Identifier, resourceData interface{}) error {
-	asset := ""
-	if source != nil {
-		asset = fmt.Sprintf("/%s", source.ToString())
-	}
-	topic := fmt.Sprintf("Oi4/%s/%s/pub/%s%s", serviceType, oi4Identifier.ToString(), resource, asset)
-	marshalledString, err := json.Marshal(CreateNetworkMessage(oi4Identifier, serviceType, resource, source, resourceData))
+func (client *MQTTClient) PublishResource(topic string, data interface{}) error {
+	marshalledString, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -78,33 +71,6 @@ func (client *MQTTClient) PublishResource(oi4Identifier *oi4.Oi4Identifier, serv
 	return nil
 }
 
-func (client *MQTTClient) PublishData(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, source *oi4.Oi4Identifier, data oi4.Oi4Data) error {
-	return client.PublishResource(oi4Identifier, serviceType, oi4.Resource_Data, source, data)
-}
-
 func (client *MQTTClient) Stop() {
 	client.client.Disconnect(1000)
-}
-
-// quick and dirty
-func CreateNetworkMessage(oi4Identifier *oi4.Oi4Identifier, serviceType oi4.ServiceType, resourceType oi4.Resource, source *oi4.Oi4Identifier, payload interface{}) *oi4.NetworkMessage {
-	currentTime := time.Now().UTC()
-
-	networkMessage := &oi4.NetworkMessage{
-		MessageId:      fmt.Sprintf("%d-%s/%s", currentTime.Unix(), serviceType, oi4Identifier.ToString()),
-		MessageType:    oi4.UA_DATA,
-		PublisherId:    fmt.Sprintf("%s/%s", serviceType, oi4Identifier.ToString()),
-		DataSetClassId: resourceType.ToDataSetClassId(),
-		Messages: []*oi4.DataSetMessage{
-			{
-				Timestamp:       currentTime.Format(time.RFC3339),
-				DataSetWriterId: 10,
-				Source:          oi4.Oi4IdentifierPath(oi4Identifier.ToString()),
-				Payload:         payload,
-			},
-		},
-	}
-
-	return networkMessage
-
 }
