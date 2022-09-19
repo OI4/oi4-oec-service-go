@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	oi4 "github.com/mzeiher/oi4/api/v1"
 	v1 "github.com/mzeiher/oi4/api/v1"
 	"github.com/mzeiher/oi4/application"
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
@@ -11,8 +13,8 @@ import (
 
 func main() {
 
-	oi4Application := application.CreateNewApplication(oi4.ServiceType_OTConnector, &oi4.MasterAssetModel{
-		Manufacturer: oi4.LocalizedText{
+	oi4Application := application.CreateNewApplication(v1.ServiceType_OTConnector, &v1.MasterAssetModel{
+		Manufacturer: v1.LocalizedText{
 			"en_us": "Bitschubser",
 		},
 		ManufacturerUri:    "bitschubser.de",
@@ -26,12 +28,12 @@ func main() {
 		SerialNumber:       "15",
 		ProductInstanceUri: "aliexpress.com",
 		RevisionCounter:    0,
-		Description: oi4.LocalizedText{
+		Description: v1.LocalizedText{
 			"en_us": "Cooles Teil",
 		},
 	})
 
-	dataPublication := application.CreatePublication(v1.Resource_Data, nil).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	dataPublication := application.CreatePublication(v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
 	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -55,14 +57,11 @@ func main() {
 		panic(err)
 	}
 
-	waiter := make(chan struct{})
-	<-waiter
-	// client.PublishResource(&oi4.Oi4Identifier{
-	// 	ManufacturerUri: "bitschubser.dev",
-	// 	Model:           "weather-test",
-	// 	ProductCode:     "08",
-	// 	SerialNumber:    "15",
-	// }, oi4.ServiceType_Utility, oi4.Resource_Data, nil, &oi4.Oi4Data{
-	// 	PrimaryValue: 9000,
-	// })
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
+
+	oi4Application.Stop()
+
+	os.Exit(0)
 }

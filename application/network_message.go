@@ -10,7 +10,7 @@ import (
 var counter uint16 = 0
 
 // quick and dirty
-func createNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceType v1.ServiceType, resourceType v1.Resource, assetOi4Identifier *v1.Oi4Identifier, datasetWriterId uint16, payload interface{}) *v1.NetworkMessage {
+func createNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceType v1.ServiceType, resourceType v1.Resource, assetOi4Identifier *v1.Oi4Identifier, datasetWriterId uint16, correlationId string, payload interface{}) *v1.NetworkMessage {
 	currentTime := time.Now().UTC()
 
 	message := &v1.DataSetMessage{
@@ -31,6 +31,7 @@ func createNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceTyp
 		PublisherId:    fmt.Sprintf("%s/%s", serviceType, applicationOi4Identifier.ToString()),
 		DataSetClassId: resourceType.ToDataSetClassId(),
 		Messages:       []*v1.DataSetMessage{message},
+		CorrelationId:  correlationId,
 	}
 	counter++
 

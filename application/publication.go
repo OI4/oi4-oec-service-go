@@ -15,9 +15,10 @@ func getNextDataSetWriterId() uint16 {
 	return nextId
 }
 
-type PublicationCommand struct {
+type PublicationMessage struct {
 	resource        v1.Resource
 	source          *v1.Oi4Identifier
+	correlationId   string
 	publicationMode v1.PublicationMode
 	data            interface{}
 	statusCode      v1.StatusCode
@@ -25,31 +26,33 @@ type PublicationCommand struct {
 }
 
 type Publisher interface {
-	publishPublication(PublicationCommand)
+	SendPublicationMessage(PublicationMessage)
 }
 
 // we definitely need a mutex there :D
 type Publication struct {
-	parent              Publisher
-	resource            v1.Resource
-	publicationMode     v1.PublicationMode
-	publicationConfig   v1.PublicationConfig
-	statusCode          v1.StatusCode
-	dataSetWriterId     uint16
-	data                interface{}
-	publicationInterval time.Duration
-	stopIntervalTicker  chan struct{}
+	publishOnRegistration bool
+	parent                Publisher
+	resource              v1.Resource
+	publicationMode       v1.PublicationMode
+	publicationConfig     v1.PublicationConfig
+	statusCode            v1.StatusCode
+	dataSetWriterId       uint16
+	data                  interface{}
+	publicationInterval   time.Duration
+	getDataFunc           func() interface{}
+	stopIntervalTicker    chan struct{}
 }
 
-func CreatePublication(resource v1.Resource, initValue interface{}) *Publication {
+func CreatePublication(resource v1.Resource, publishOnRegistration bool) *Publication {
 	return &Publication{
-		resource:            resource,
-		publicationMode:     v1.PublicationMode_ON_REQUEST_1,
-		data:                initValue,
-		statusCode:          0,
-		publicationConfig:   v1.PublicationConfig_NONE_0,
-		publicationInterval: 0,
-		dataSetWriterId:     getNextDataSetWriterId(),
+		resource:              resource,
+		publicationMode:       v1.PublicationMode_ON_REQUEST_1,
+		publishOnRegistration: publishOnRegistration,
+		statusCode:            0,
+		publicationConfig:     v1.PublicationConfig_NONE_0,
+		publicationInterval:   0,
+		dataSetWriterId:       getNextDataSetWriterId(),
 	}
 }
 
@@ -74,14 +77,25 @@ func (p *Publication) SetPublicationInterval(newPublicationInterval time.Duratio
 func (p *Publication) SetStatusCode(status v1.StatusCode) *Publication {
 	p.statusCode = status
 
-	p.triggerPublication(false, false)
+	p.triggerPublication(false, false, "")
 	return p
 }
 
 func (p *Publication) SetData(data interface{}) *Publication {
 	p.data = data
 
-	p.triggerPublication(false, false)
+	p.triggerPublication(false, false, "")
+	return p
+}
+
+func (p *Publication) SetDataFunc(getDataFunc func() interface{}) *Publication {
+	p.getDataFunc = getDataFunc
+
+	return p
+}
+
+func (p *Publication) Publish() *Publication {
+	p.triggerPublication(false, false, "")
 	return p
 }
 
@@ -96,18 +110,24 @@ func (p *Publication) start() {
 	p.startPublicationTimer(p.publicationInterval, p.publicationMode)
 }
 
-func (p *Publication) triggerPublication(byInterval bool, onRequest bool) {
+func (p *Publication) triggerPublication(byInterval bool, onRequest bool, correlationId string) {
 	if p.parent != nil && onRequest ||
 		(p.publicationMode != v1.PublicationMode_OFF_0 && p.publicationMode != v1.PublicationMode_ON_REQUEST_1 &&
 			((p.publicationInterval == 0 && !byInterval) ||
 				(p.publicationInterval != 0 && byInterval))) {
-		p.parent.publishPublication(PublicationCommand{
+		message := PublicationMessage{
 			resource:        p.resource,
 			statusCode:      p.statusCode,
-			data:            p.data,
 			publicationMode: p.publicationMode,
 			dataSetWriterId: p.dataSetWriterId,
-		})
+			correlationId:   correlationId,
+		}
+		if p.getDataFunc != nil {
+			message.data = p.getDataFunc()
+		} else {
+			message.data = p.data
+		}
+		p.parent.SendPublicationMessage(message)
 	}
 }
 
@@ -146,7 +166,7 @@ func (p *Publication) startPublicationTimer(newPublicationInterval time.Duration
 			for {
 				select {
 				case <-ticker.C:
-					p.triggerPublication(true, false)
+					p.triggerPublication(true, false, "")
 				case <-stopChannel:
 					ticker.Stop()
 					return

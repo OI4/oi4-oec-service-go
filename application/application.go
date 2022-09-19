@@ -48,8 +48,8 @@ func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel
 		publicationMutex: sync.Mutex{},
 	}
 
-	application.RegisterPublication(CreatePublication(oi4.Resource_Health, oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
-	application.RegisterPublication(CreatePublication(oi4.Resource_MAM, mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
+	application.RegisterPublication(CreatePublication(oi4.Resource_Health, true).SetData(oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
+	application.RegisterPublication(CreatePublication(oi4.Resource_MAM, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
 
 	return application
 }
@@ -123,9 +123,9 @@ func (app *Oi4Application) UpdateData(data oi4.Oi4Data) {
 	app.publicationsList[oi4.Resource_Data].SetData(data)
 }
 
-func (app *Oi4Application) publishPublication(publication PublicationCommand) {
+func (app *Oi4Application) SendPublicationMessage(publication PublicationMessage) {
 	if app.mqttClient != nil && publication.data != nil {
-		topic := fmt.Sprintf("Oi4/%s/%s/pub/%s", app.serviceType, app.mam.ToOi4Identifier().ToString(), publication.resource)
+		topic := fmt.Sprintf("Oi4/%s/%s/Pub/%s", app.serviceType, app.mam.ToOi4Identifier().ToString(), publication.resource)
 		if publication.source != nil &&
 			(publication.publicationMode == oi4.PublicationMode_SOURCE_3 ||
 				publication.publicationMode == oi4.PublicationMode_APPLICATION_SOURCE_FILTER_8 ||
@@ -134,12 +134,13 @@ func (app *Oi4Application) publishPublication(publication PublicationCommand) {
 			topic = fmt.Sprintf("%s/%s", topic, publication.source.ToString())
 		}
 
-		app.mqttClient.PublishResource(topic, createNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, nil, publication.dataSetWriterId, publication.data))
+		app.mqttClient.PublishResource(topic, createNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, nil, publication.dataSetWriterId, publication.correlationId, publication.data))
 
 	}
 }
 
 func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) error {
+
 	client, err := mqtt.NewMQTTClient(mqttClientOptions)
 	if err != nil {
 		return err
@@ -147,13 +148,24 @@ func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) erro
 	app.mqttClient = client
 
 	// trigger publications
-	app.publicationsList[oi4.Resource_MAM].triggerPublication(false, true)
-	app.publicationsList[oi4.Resource_Health].triggerPublication(false, true)
+	for _, publication := range app.publicationsList {
+		if publication.publishOnRegistration {
+			publication.triggerPublication(false, true, "")
+		}
+	}
+
+	app.mqttClient.RegisterGetHandler(app.serviceType, oi4.Oi4IdentifierPath(app.mam.ToOi4Identifier().ToString()), func(resource oi4.Resource, source oi4.Oi4IdentifierPath, networkMessage oi4.NetworkMessage) {
+		if publication := app.publicationsList[resource]; publication != nil {
+			publication.triggerPublication(false, true, networkMessage.MessageId)
+		}
+	})
 
 	return nil
 }
 
 func (app *Oi4Application) Stop() {
-	app.stopHealthInterval <- struct{}{}
+	for _, publication := range app.publicationsList {
+		publication.stop()
+	}
 	app.mqttClient.Stop()
 }
