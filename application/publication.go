@@ -26,7 +26,7 @@ type PublicationMessage struct {
 }
 
 type Publisher interface {
-	SendPublicationMessage(PublicationMessage)
+	sendPublicationMessage(PublicationMessage)
 }
 
 // we definitely need a mutex there :D
@@ -127,7 +127,7 @@ func (p *Publication) triggerPublication(byInterval bool, onRequest bool, correl
 		} else {
 			message.data = p.data
 		}
-		p.parent.SendPublicationMessage(message)
+		p.parent.sendPublicationMessage(message)
 	}
 }
 

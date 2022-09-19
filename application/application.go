@@ -124,7 +124,7 @@ func (app *Oi4Application) UpdateData(data oi4.Oi4Data) {
 	app.publicationsList[oi4.Resource_Data].SetData(data)
 }
 
-func (app *Oi4Application) SendPublicationMessage(publication PublicationMessage) {
+func (app *Oi4Application) sendPublicationMessage(publication PublicationMessage) {
 	if app.mqttClient != nil && publication.data != nil {
 		topic := fmt.Sprintf("Oi4/%s/%s/Pub/%s", app.serviceType, app.mam.ToOi4Identifier().ToString(), publication.resource)
 		if publication.source != nil &&
