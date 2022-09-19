@@ -1,4 +1,4 @@
-package application
+package opcmessages
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 var counter uint16 = 0
 
 // quick and dirty
-func createNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceType v1.ServiceType, resourceType v1.Resource, assetOi4Identifier *v1.Oi4Identifier, datasetWriterId uint16, correlationId string, payload interface{}) *v1.NetworkMessage {
+func CreateNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceType v1.ServiceType, resourceType v1.Resource, assetOi4Identifier *v1.Oi4Identifier, datasetWriterId uint16, correlationId string, payload interface{}) *v1.NetworkMessage {
 	currentTime := time.Now().UTC()
 
 	message := &v1.DataSetMessage{

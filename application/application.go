@@ -8,6 +8,7 @@ import (
 
 	oi4 "github.com/mzeiher/oi4/api/v1"
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
+	opcmessages "github.com/mzeiher/oi4/application/pkg/opc_messages"
 )
 
 var (
@@ -134,7 +135,7 @@ func (app *Oi4Application) SendPublicationMessage(publication PublicationMessage
 			topic = fmt.Sprintf("%s/%s", topic, publication.source.ToString())
 		}
 
-		app.mqttClient.PublishResource(topic, createNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, nil, publication.dataSetWriterId, publication.correlationId, publication.data))
+		app.mqttClient.PublishResource(topic, opcmessages.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, nil, publication.dataSetWriterId, publication.correlationId, publication.data))
 
 	}
 }
