@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	oi4 "github.com/mzeiher/oi4/api/v1"
+	oi4 "github.com/mzeiher/oi4/api/pkg/types"
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
 	opcmessages "github.com/mzeiher/oi4/application/pkg/opc_messages"
 )

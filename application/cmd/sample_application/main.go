@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	v1 "github.com/mzeiher/oi4/api/v1"
+	v1 "github.com/mzeiher/oi4/api/pkg/types"
 	"github.com/mzeiher/oi4/application"
 	"github.com/mzeiher/oi4/application/pkg/mqtt"
 )

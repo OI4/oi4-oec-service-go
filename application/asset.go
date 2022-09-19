@@ -1,6 +1,6 @@
 package application
 
-import oi4 "github.com/mzeiher/oi4/api/v1"
+import oi4 "github.com/mzeiher/oi4/api/pkg/types"
 
 type Oi4Asset struct {
 	parent *Oi4Application

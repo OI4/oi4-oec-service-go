@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/mzeiher/oi4/api/v1"
+	v1 "github.com/mzeiher/oi4/api/pkg/types"
 )
 
 var counter uint16 = 0
