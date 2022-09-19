@@ -47,19 +47,19 @@ Questions....
   ```
 
 # Last Will
--> shouldn't the last will be used to change health (what happens with subresources -> no will for them, also timestamp is wrong -> time series store)
+-> shouldn't the last will be used to change health (what happens with assets -> no will on their topics because will can only be registered for one topic, also timestamp is wrong -> time series store does not work (timestamp from start of application)
 
 # DataSetClassId
 some are missing GUIDs e.g. data, metadata
 
 # Retain messages
-Does it make sense to set the retain flag for MAM and health? So if the registry crashes and restarts it gets all information
+Does it make sense to set the retain flag for MAM and health? So if the registry crashes and restarts it gets all information?
 
 # MesageId
-why not timestamp GUID? -> source info is encoded in "Source" so no need for oi4identifier
+why not timestamp GUID? -> source info is encoded in "Source" or "Publisher" so no need for oi4identifier
 
 # Webhook support for "bigger messages"
 Maybe some kind of webhook request/info for other application to query blobs or more data if available
 
 # Publication Mode
-Interval intermediate what happens if application and asset also application with interval
+immediate publish also on Interval? what happens if application and asset both  "application" mode for data?
