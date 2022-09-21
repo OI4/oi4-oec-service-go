@@ -52,6 +52,14 @@ func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel
 	application.RegisterPublication(CreatePublication(oi4.Resource_Health, true).SetData(oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
 	application.RegisterPublication(CreatePublication(oi4.Resource_MAM, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
 
+	application.RegisterPublication(CreatePublication(oi4.Resource_Profile, false).SetDataFunc(func() interface{} {
+		resources := make([]oi4.Resource, 0)
+		for key, _ := range application.publicationsList {
+			resources = append(resources, key)
+		}
+		return resources
+	}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
+
 	return application
 }
 
@@ -92,7 +100,7 @@ func (app *Oi4Application) GetPublications() []oi4.Resource {
 
 	resources := make([]oi4.Resource, len(app.publicationsList))
 	i := 0
-	for key, _ := range app.publicationsList {
+	for key := range app.publicationsList {
 		resources[i] = key
 		i++
 	}
