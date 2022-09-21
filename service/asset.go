@@ -1,4 +1,4 @@
-package application
+package service
 
 import oi4 "github.com/mzeiher/oi4/api/pkg/types"
 

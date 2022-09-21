@@ -1,4 +1,4 @@
-package application
+package service
 
 import (
 	"errors"
@@ -7,8 +7,8 @@ import (
 	"time"
 
 	oi4 "github.com/mzeiher/oi4/api/pkg/types"
-	"github.com/mzeiher/oi4/application/pkg/mqtt"
-	opcmessages "github.com/mzeiher/oi4/application/pkg/opc_messages"
+	"github.com/mzeiher/oi4/service/pkg/mqtt"
+	opcmessages "github.com/mzeiher/oi4/service/pkg/opc_messages"
 )
 
 var (

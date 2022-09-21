@@ -1,4 +1,4 @@
-module github.com/mzeiher/oi4/application
+module github.com/mzeiher/oi4/service
 
 go 1.18
 

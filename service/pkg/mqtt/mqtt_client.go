@@ -9,7 +9,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	v1 "github.com/mzeiher/oi4/api/pkg/types"
-	"github.com/mzeiher/oi4/application/pkg/tls"
+	"github.com/mzeiher/oi4/service/pkg/tls"
 )
 
 var (
