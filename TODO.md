@@ -63,3 +63,6 @@ Maybe some kind of webhook request/info for other application to query blobs or 
 
 # Publication Mode
 immediate publish also on Interval? what happens if application and asset both  "application" mode for data?
+
+# Versioning in messages
+how to version API/Messages
