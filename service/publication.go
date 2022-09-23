@@ -25,92 +25,119 @@ type PublicationMessage struct {
 	dataSetWriterId uint16
 }
 
-type Publisher interface {
+type PublicationPublisher interface {
 	sendPublicationMessage(PublicationMessage)
 }
 
-// we definitely need a mutex there :D
-type Publication struct {
-	publishOnRegistration bool
-	parent                Publisher
-	resource              v1.Resource
-	publicationMode       v1.PublicationMode
-	publicationConfig     v1.PublicationConfig
-	statusCode            v1.StatusCode
-	dataSetWriterId       uint16
-	data                  interface{}
-	publicationInterval   time.Duration
-	getDataFunc           func() interface{}
-	stopIntervalTicker    chan struct{}
+type Publication interface {
+	getResource() v1.Resource
+	triggerPublication(byInterval bool, onRequest bool, correlationId string)
+	stop()
+	start()
+	setParent(PublicationPublisher)
+	publishOnRegistration() bool
+	getParent() PublicationPublisher
 }
 
-func CreatePublication(resource v1.Resource, publishOnRegistration bool) *Publication {
-	return &Publication{
-		resource:              resource,
-		publicationMode:       v1.PublicationMode_ON_REQUEST_1,
-		publishOnRegistration: publishOnRegistration,
-		statusCode:            0,
-		publicationConfig:     v1.PublicationConfig_NONE_0,
-		publicationInterval:   0,
-		dataSetWriterId:       getNextDataSetWriterId(),
+// we definitely need a mutex there :D
+type PublicationImpl[T interface{}] struct {
+	Publication
+	doPublishOnRegistration bool
+	parent                  PublicationPublisher
+	resource                v1.Resource
+	publicationMode         v1.PublicationMode
+	publicationConfig       v1.PublicationConfig
+	statusCode              v1.StatusCode
+	dataSetWriterId         uint16
+	data                    T
+	publicationInterval     time.Duration
+	getDataFunc             func() T
+	stopIntervalTicker      chan struct{}
+}
+
+func CreatePublication[T interface{}](resource v1.Resource, publishOnRegistration bool) *PublicationImpl[T] {
+	return &PublicationImpl[T]{
+		resource:                resource,
+		publicationMode:         v1.PublicationMode_ON_REQUEST_1,
+		doPublishOnRegistration: publishOnRegistration,
+		statusCode:              0,
+		publicationConfig:       v1.PublicationConfig_NONE_0,
+		publicationInterval:     0,
+		dataSetWriterId:         getNextDataSetWriterId(),
 	}
 }
 
-func (p *Publication) SetPublicationMode(newMode v1.PublicationMode) *Publication {
+func (p *PublicationImpl[T]) SetPublicationMode(newMode v1.PublicationMode) *PublicationImpl[T] {
 	p.startPublicationTimer(p.publicationInterval, newMode)
 
 	return p
 }
 
-func (p *Publication) SetPublicationConfig(newConfig v1.PublicationConfig) *Publication {
+func (p *PublicationImpl[T]) SetPublicationConfig(newConfig v1.PublicationConfig) *PublicationImpl[T] {
 	p.publicationConfig = newConfig
 
 	return p
 }
 
-func (p *Publication) SetPublicationInterval(newPublicationInterval time.Duration) *Publication {
+func (p *PublicationImpl[T]) SetPublicationInterval(newPublicationInterval time.Duration) *PublicationImpl[T] {
 	p.startPublicationTimer(newPublicationInterval, p.publicationMode)
 
 	return p
 }
 
-func (p *Publication) SetStatusCode(status v1.StatusCode) *Publication {
+func (p *PublicationImpl[T]) SetStatusCode(status v1.StatusCode) *PublicationImpl[T] {
 	p.statusCode = status
 
 	p.triggerPublication(false, false, "")
 	return p
 }
 
-func (p *Publication) SetData(data interface{}) *Publication {
+func (p *PublicationImpl[T]) SetData(data T) *PublicationImpl[T] {
 	p.data = data
 
 	p.triggerPublication(false, false, "")
 	return p
 }
 
-func (p *Publication) SetDataFunc(getDataFunc func() interface{}) *Publication {
+func (p *PublicationImpl[T]) SetDataFunc(getDataFunc func() T) *PublicationImpl[T] {
 	p.getDataFunc = getDataFunc
 
 	return p
 }
 
-func (p *Publication) Publish() *Publication {
+func (p *PublicationImpl[T]) Publish() *PublicationImpl[T] {
 	p.triggerPublication(false, false, "")
 	return p
 }
 
-func (p *Publication) stop() {
+func (p *PublicationImpl[T]) stop() {
 	if p.stopIntervalTicker != nil {
 		p.stopIntervalTicker <- struct{}{}
 		p.stopIntervalTicker = nil
 	}
 }
 
-func (p *Publication) start() {
+func (p *PublicationImpl[T]) setParent(parent PublicationPublisher) {
+	p.parent = parent
+}
+
+func (p *PublicationImpl[T]) getParent() PublicationPublisher {
+	return p.parent
+}
+
+func (p *PublicationImpl[T]) getResource() v1.Resource {
+	return p.resource
+}
+
+func (p *PublicationImpl[T]) publishOnRegistration() bool {
+	return p.doPublishOnRegistration
+}
+
+func (p *PublicationImpl[T]) start() {
 	p.startPublicationTimer(p.publicationInterval, p.publicationMode)
 }
 
-func (p *Publication) triggerPublication(byInterval bool, onRequest bool, correlationId string) {
+func (p *PublicationImpl[T]) triggerPublication(byInterval bool, onRequest bool, correlationId string) {
 	if p.parent != nil && onRequest ||
 		(p.publicationMode != v1.PublicationMode_OFF_0 && p.publicationMode != v1.PublicationMode_ON_REQUEST_1 &&
 			((p.publicationInterval == 0 && !byInterval) ||
@@ -131,7 +158,7 @@ func (p *Publication) triggerPublication(byInterval bool, onRequest bool, correl
 	}
 }
 
-func (p *Publication) startPublicationTimer(newPublicationInterval time.Duration, newPublicationMode v1.PublicationMode) {
+func (p *PublicationImpl[T]) startPublicationTimer(newPublicationInterval time.Duration, newPublicationMode v1.PublicationMode) {
 
 	// really really shaky this function :D
 	resetTimerInterval := false

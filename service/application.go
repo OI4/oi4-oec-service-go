@@ -17,7 +17,7 @@ var (
 )
 
 type Oi4Application struct {
-	Publisher
+	PublicationPublisher
 
 	mam         *oi4.MasterAssetModel
 	serviceType oi4.ServiceType
@@ -27,16 +27,13 @@ type Oi4Application struct {
 	assets     map[oi4.Oi4IdentifierPath]*Oi4Asset
 	assetMutex sync.Mutex
 
-	publicationsList map[oi4.Resource]*Publication
+	publicationsList map[oi4.Resource]Publication
 	publicationMutex sync.Mutex
-
-	stopHealthInterval chan struct{}
 }
 
 // Create a new Application
 //
 // The application needs to be started and connected with the Connect Method
-//
 func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel) *Oi4Application {
 	application := &Oi4Application{
 		mam:         mam,
@@ -45,14 +42,14 @@ func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel
 		assets:     make(map[oi4.Oi4IdentifierPath]*Oi4Asset),
 		assetMutex: sync.Mutex{},
 
-		publicationsList: make(map[oi4.Resource]*Publication),
+		publicationsList: make(map[oi4.Resource]Publication),
 		publicationMutex: sync.Mutex{},
 	}
 
-	application.RegisterPublication(CreatePublication(oi4.Resource_Health, true).SetData(oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
-	application.RegisterPublication(CreatePublication(oi4.Resource_MAM, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
+	application.RegisterPublication(CreatePublication[oi4.Health](oi4.Resource_Health, true).SetData(oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
+	application.RegisterPublication(CreatePublication[oi4.MasterAssetModel](oi4.Resource_MAM, true).SetData(*mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
 
-	application.RegisterPublication(CreatePublication(oi4.Resource_Profile, false).SetDataFunc(func() interface{} {
+	application.RegisterPublication(CreatePublication[[]oi4.Resource](oi4.Resource_Profile, false).SetDataFunc(func() []oi4.Resource {
 		resources := make([]oi4.Resource, 0)
 		for key, _ := range application.publicationsList {
 			resources = append(resources, key)
@@ -63,20 +60,20 @@ func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel
 	return application
 }
 
-func (app *Oi4Application) RegisterPublication(publication *Publication) error {
+func (app *Oi4Application) RegisterPublication(publication Publication) error {
 	app.publicationMutex.Lock()
 	defer app.publicationMutex.Unlock()
 
-	if app.publicationsList[publication.resource] != nil {
+	if app.publicationsList[publication.getResource()] != nil {
 		return ErrPublisherAlreadyRegistered
 	}
 
-	if publication.parent != nil {
+	if publication.getParent != nil {
 		return ErrPublicationAlreadyRegisteredOnAnotherApplication
 	}
 
-	publication.parent = app
-	app.publicationsList[publication.resource] = publication
+	publication.setParent(app)
+	app.publicationsList[publication.getResource()] = publication
 	publication.start()
 
 	return nil
@@ -125,11 +122,7 @@ func (app *Oi4Application) RemoveAsset(asset *Oi4Asset) {
 }
 
 func (app *Oi4Application) UpdateHealth(health oi4.Health) {
-	app.publicationsList[oi4.Resource_Health].SetData(health)
-}
-
-func (app *Oi4Application) UpdateData(data oi4.Oi4Data) {
-	app.publicationsList[oi4.Resource_Data].SetData(data)
+	app.publicationsList[oi4.Resource_Health].(*PublicationImpl[oi4.Health]).SetData(health)
 }
 
 func (app *Oi4Application) sendPublicationMessage(publication PublicationMessage) {
@@ -158,7 +151,7 @@ func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) erro
 
 	// trigger publications
 	for _, publication := range app.publicationsList {
-		if publication.publishOnRegistration {
+		if publication.publishOnRegistration() {
 			publication.triggerPublication(false, true, "")
 		}
 	}

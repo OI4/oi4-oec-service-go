@@ -33,7 +33,7 @@ func main() {
 		},
 	})
 
-	dataPublication := application.CreatePublication(v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	dataPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
 	ticker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0

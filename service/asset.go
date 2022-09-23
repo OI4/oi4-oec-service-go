@@ -1,6 +1,8 @@
 package service
 
-import oi4 "github.com/mzeiher/oi4/api/pkg/types"
+import (
+	oi4 "github.com/mzeiher/oi4/api/pkg/types"
+)
 
 type Oi4Asset struct {
 	parent *Oi4Application
