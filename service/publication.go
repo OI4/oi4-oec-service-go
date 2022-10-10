@@ -35,6 +35,7 @@ type Publication interface {
 	stop()
 	start()
 	setParent(PublicationPublisher)
+	setSource(*v1.Oi4Identifier)
 	publishOnRegistration() bool
 	getParent() PublicationPublisher
 }
@@ -48,6 +49,7 @@ type PublicationImpl[T interface{}] struct {
 	publicationMode         v1.PublicationMode
 	publicationConfig       v1.PublicationConfig
 	statusCode              v1.StatusCode
+	source                  *v1.Oi4Identifier
 	dataSetWriterId         uint16
 	data                    T
 	publicationInterval     time.Duration
@@ -121,6 +123,10 @@ func (p *PublicationImpl[T]) setParent(parent PublicationPublisher) {
 	p.parent = parent
 }
 
+func (p *PublicationImpl[T]) setSource(source *v1.Oi4Identifier) {
+	p.source = source
+}
+
 func (p *PublicationImpl[T]) getParent() PublicationPublisher {
 	return p.parent
 }
@@ -138,16 +144,17 @@ func (p *PublicationImpl[T]) start() {
 }
 
 func (p *PublicationImpl[T]) triggerPublication(byInterval bool, onRequest bool, correlationId string) {
-	if p.parent != nil && onRequest ||
+	if p.parent != nil && (onRequest ||
 		(p.publicationMode != v1.PublicationMode_OFF_0 && p.publicationMode != v1.PublicationMode_ON_REQUEST_1 &&
 			((p.publicationInterval == 0 && !byInterval) ||
-				(p.publicationInterval != 0 && byInterval))) {
+				(p.publicationInterval != 0 && byInterval)))) {
 		message := PublicationMessage{
 			resource:        p.resource,
 			statusCode:      p.statusCode,
 			publicationMode: p.publicationMode,
 			dataSetWriterId: p.dataSetWriterId,
 			correlationId:   correlationId,
+			source:          p.source,
 		}
 		if p.getDataFunc != nil {
 			message.data = p.getDataFunc()

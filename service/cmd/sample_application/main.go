@@ -17,7 +17,7 @@ func main() {
 		Manufacturer: v1.LocalizedText{
 			"en_us": "Bitschubser",
 		},
-		ManufacturerUri:    "bitschubser.de",
+		ManufacturerUri:    "bitschubser.dev",
 		Model:              "SampleApplication",
 		ProductCode:        "08",
 		HardwareRevision:   "0",
@@ -26,33 +26,68 @@ func main() {
 		DeviceManual:       "",
 		DeviceClass:        "PerpetuumMobile",
 		SerialNumber:       "15",
-		ProductInstanceUri: "aliexpress.com",
+		ProductInstanceUri: "bitschubser.dev",
 		RevisionCounter:    0,
 		Description: v1.LocalizedText{
-			"en_us": "Cooles Teil",
+			"en_us": "Cool Application",
 		},
 	})
 
-	dataPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
-	ticker := time.NewTicker(10 * time.Second)
+	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
 		for {
-			<-ticker.C
-			dataPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
+			<-applicationTicker.C
+			dataApplicationPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
 			counter++
 		}
 
 	}()
 
-	oi4Application.RegisterPublication(dataPublication)
+	oi4Application.RegisterPublication(dataApplicationPublication)
+
+	oi4Asset := application.CreateNewAsset(&v1.MasterAssetModel{
+		Manufacturer: v1.LocalizedText{
+			"en_us": "Bitschubser",
+		},
+		ManufacturerUri:    "bitschubser.dev",
+		Model:              "SampleAsset",
+		ProductCode:        "08",
+		HardwareRevision:   "0",
+		SoftwareRevision:   "0",
+		DeviceRevision:     "0",
+		DeviceManual:       "",
+		DeviceClass:        "PerpetuumMobile",
+		SerialNumber:       "15",
+		ProductInstanceUri: "bitschubser.dev",
+		RevisionCounter:    0,
+		Description: v1.LocalizedText{
+			"en_us": "Cool Asset",
+		},
+	})
+
+	dataAssetPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
+	assetTicker := time.NewTicker(10 * time.Second)
+	go func() {
+		counter := 0
+		for {
+			<-assetTicker.C
+			dataAssetPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
+			counter++
+		}
+
+	}()
+	oi4Asset.RegisterPublication(dataAssetPublication)
+
+	oi4Application.RegisterAsset(oi4Asset)
 
 	if err := oi4Application.Start(&mqtt.MQTTClientOptions{
 		Host:     "localhost",
 		Port:     1883,
 		Tls:      false,
-		Username: "test",
-		Password: "test",
+		Username: "oi4",
+		Password: "oi4",
 	}); err != nil {
 		panic(err)
 	}

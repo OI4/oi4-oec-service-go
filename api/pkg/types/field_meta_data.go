@@ -35,7 +35,7 @@ type FieldMetaData struct {
 	// builtInType values are defined in OPC UA Part 6-5.1.2.
 	//
 	// note The JSON representation of each BuildInType is defined in OPC UA PART 6-5.4.2.
-	BuiltInType byte `json:"BuiltInType"`
+	BuiltInType BuiltInDataType `json:"BuiltInType"`
 
 	// Value range: <NodeId>
 	// Type: NodeId object

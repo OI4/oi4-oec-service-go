@@ -15,32 +15,32 @@ type NodeId struct {
 	Namespace int32       `json:"Namespace,omitempty"`
 }
 
-type BasicType byte
+type BuiltInDataType byte
 
 const (
-	Type_Boolean         BasicType = 1
-	Type_SByte           BasicType = 2
-	Type_Byte            BasicType = 3
-	Type_Int16           BasicType = 4
-	Type_UInt16          BasicType = 5
-	Type_Int32           BasicType = 6
-	Type_UInt32          BasicType = 7
-	Type_Int64           BasicType = 8
-	Type_UInt64          BasicType = 9
-	Type_Float           BasicType = 10
-	Type_Double          BasicType = 11
-	Type_String          BasicType = 12
-	Type_DateTime        BasicType = 13
-	Type_Guid            BasicType = 14
-	Type_ByteString      BasicType = 15
-	Type_XmlElement      BasicType = 16
-	Type_NodeId          BasicType = 17
-	Type_ExpandedNodeId  BasicType = 18
-	Type_StatusCode      BasicType = 19
-	Type_QualifiedName   BasicType = 20
-	Type_LocalizedText   BasicType = 21
-	Type_ExtensionObject BasicType = 22
-	Type_DataValue       BasicType = 23
-	Type_Variant         BasicType = 24
-	Type_DiagnosticInfo  BasicType = 25
+	BuiltInType_Boolean         BuiltInDataType = 1
+	BuiltInType_SByte           BuiltInDataType = 2
+	BuiltInType_Byte            BuiltInDataType = 3
+	BuiltInType_Int16           BuiltInDataType = 4
+	BuiltInType_UInt16          BuiltInDataType = 5
+	BuiltInType_Int32           BuiltInDataType = 6
+	BuiltInType_UInt32          BuiltInDataType = 7
+	BuiltInType_Int64           BuiltInDataType = 8
+	BuiltInType_UInt64          BuiltInDataType = 9
+	BuiltInType_Float           BuiltInDataType = 10
+	BuiltInType_Double          BuiltInDataType = 11
+	BuiltInType_String          BuiltInDataType = 12
+	BuiltInType_DateTime        BuiltInDataType = 13
+	BuiltInType_Guid            BuiltInDataType = 14
+	BuiltInType_ByteString      BuiltInDataType = 15
+	BuiltInType_XmlElement      BuiltInDataType = 16
+	BuiltInType_NodeId          BuiltInDataType = 17
+	BuiltInType_ExpandedNodeId  BuiltInDataType = 18
+	BuiltInType_StatusCode      BuiltInDataType = 19
+	BuiltInType_QualifiedName   BuiltInDataType = 20
+	BuiltInType_LocalizedText   BuiltInDataType = 21
+	BuiltInType_ExtensionObject BuiltInDataType = 22
+	BuiltInType_DataValue       BuiltInDataType = 23
+	BuiltInType_Variant         BuiltInDataType = 24
+	BuiltInType_DiagnosticInfo  BuiltInDataType = 25
 )
