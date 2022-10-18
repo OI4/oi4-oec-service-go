@@ -7,9 +7,9 @@ import (
 	"log"
 	"regexp"
 
+	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
+	"github.com/OI4/oi4-oec-service-go/service/pkg/tls"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	v1 "github.com/mzeiher/oi4/api/pkg/types"
-	"github.com/mzeiher/oi4/service/pkg/tls"
 )
 
 var (

@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/mzeiher/oi4/api/pkg/utils"
+	"github.com/OI4/oi4-oec-service-go/api/pkg/utils"
 )
 
 type Oi4IdentifierPath string

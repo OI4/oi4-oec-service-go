@@ -6,9 +6,9 @@ import (
 	"syscall"
 	"time"
 
-	v1 "github.com/mzeiher/oi4/api/pkg/types"
-	application "github.com/mzeiher/oi4/service"
-	"github.com/mzeiher/oi4/service/pkg/mqtt"
+	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
+	application "github.com/OI4/oi4-oec-service-go/service"
+	"github.com/OI4/oi4-oec-service-go/service/pkg/mqtt"
 )
 
 func main() {
@@ -83,7 +83,7 @@ func main() {
 	oi4Application.RegisterAsset(oi4Asset)
 
 	if err := oi4Application.Start(&mqtt.MQTTClientOptions{
-		Host:     "localhost",
+		Host:     "192.168.178.217",
 		Port:     1883,
 		Tls:      false,
 		Username: "oi4",

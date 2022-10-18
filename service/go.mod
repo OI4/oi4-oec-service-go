@@ -1,12 +1,12 @@
-module github.com/mzeiher/oi4/service
+module github.com/OI4/oi4-oec-service-go/service
 
 go 1.18
 
-replace github.com/mzeiher/oi4/api v0.0.0 => ../api
+replace github.com/OI4/oi4-oec-service-go/api v0.0.0 => ../api
 
 require (
+	github.com/OI4/oi4-oec-service-go/api v0.0.0
 	github.com/eclipse/paho.mqtt.golang v1.4.1
-	github.com/mzeiher/oi4/api v0.0.0
 )
 
 require (

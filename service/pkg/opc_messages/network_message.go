@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	v1 "github.com/mzeiher/oi4/api/pkg/types"
+	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
 )
 
 var counter uint16 = 0

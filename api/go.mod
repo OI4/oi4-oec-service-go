@@ -1,3 +1,3 @@
-module github.com/mzeiher/oi4/api
+module github.com/OI4/oi4-oec-service-go/api
 
 go 1.18

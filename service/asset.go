@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	oi4 "github.com/mzeiher/oi4/api/pkg/types"
+	oi4 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
 )
 
 type Oi4Asset struct {

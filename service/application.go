@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	oi4 "github.com/mzeiher/oi4/api/pkg/types"
-	"github.com/mzeiher/oi4/service/pkg/mqtt"
-	opcmessages "github.com/mzeiher/oi4/service/pkg/opc_messages"
+	oi4 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
+	"github.com/OI4/oi4-oec-service-go/service/pkg/mqtt"
+	opcmessages "github.com/OI4/oi4-oec-service-go/service/pkg/opc_messages"
 )
 
 var (
