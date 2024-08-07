@@ -1,13 +1,34 @@
 package types
 
+import "fmt"
+
 type ServiceType string
 
 const (
-	ServiceType_Registry     ServiceType = "Registry"
-	ServiceType_OTConnector  ServiceType = "OTConnector"
-	ServiceType_Utility      ServiceType = "Utility"
-	ServiceType_Persistence  ServiceType = "Persistence"
-	ServiceType_Aggregation  ServiceType = "Aggregation"
-	ServiceType_OOCConnector ServiceType = "OOCConnector"
-	ServiceType_ITConnector  ServiceType = "ITConnector"
+	ServiceTypeRegistry     ServiceType = "Registry"
+	ServiceTypeOTConnector  ServiceType = "OTConnector"
+	ServiceTypeUtility      ServiceType = "Utility"
+	ServiceTypePersistence  ServiceType = "Persistence"
+	ServiceTypeAggregation  ServiceType = "Aggregation"
+	ServiceTypeOOCConnector ServiceType = "OOCConnector"
+	ServiceTypeITConnector  ServiceType = "ITConnector"
 )
+
+var serviceTypes = map[ServiceType]struct{}{
+	ServiceTypeRegistry:     {},
+	ServiceTypeOTConnector:  {},
+	ServiceTypeUtility:      {},
+	ServiceTypePersistence:  {},
+	ServiceTypeAggregation:  {},
+	ServiceTypeOOCConnector: {},
+	ServiceTypeITConnector:  {},
+}
+
+func ParseServiceType(s string) (*ServiceType, error) {
+	sType := ServiceType(s)
+	_, ok := serviceTypes[sType]
+	if !ok {
+		return nil, fmt.Errorf(`cannot parse:[%s] as ServiceType`, s)
+	}
+	return &sType, nil
+}

@@ -76,7 +76,7 @@ func (client *MQTTClient) PublishResource(topic string, data interface{}) error 
 
 var topicRegex, _ = regexp.Compile(`Oi4\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)(\/([^/\s]+))?`)
 
-func (client *MQTTClient) RegisterGetHandler(serviceType v1.ServiceType, appId v1.Oi4IdentifierPath, handler func(resource v1.Resource, source v1.Oi4IdentifierPath, networkMessage v1.NetworkMessage)) {
+func (client *MQTTClient) RegisterGetHandler(serviceType v1.ServiceType, appId v1.Oi4IdentifierPath, handler func(resource v1.ResourceType, source v1.Oi4IdentifierPath, networkMessage v1.NetworkMessage)) {
 	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId)
 	client.client.Subscribe(topic, 0, func(_ mqtt.Client, message mqtt.Message) {
 		networkMessage := v1.NetworkMessage{}
@@ -95,7 +95,7 @@ func (client *MQTTClient) RegisterGetHandler(serviceType v1.ServiceType, appId v
 		// method := match[3]
 		resource := match[7]
 		source := match[9]
-		handler(v1.Resource(resource), v1.Oi4IdentifierPath(source), networkMessage)
+		handler(v1.ResourceType(resource), v1.Oi4IdentifierPath(source), networkMessage)
 	})
 }
 

@@ -24,7 +24,7 @@ const (
 )
 
 type PublicationList struct {
-	Resource        `json:"Resource"`
+	ResourceType    `json:"ResourceType"`
 	Source          Oi4IdentifierPath  `json:"Source"`
 	Filter          *interface{}       `json:"Filter,omitempty"`
 	DataSetWriterId uint16             `json:"DataSetWriterId"`

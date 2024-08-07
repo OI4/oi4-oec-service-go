@@ -1,5 +1,5 @@
 package types
 
 type Profile struct {
-	Resources []Resource `json:"Resources"`
+	Resources []ResourceType `json:"Resources"`
 }

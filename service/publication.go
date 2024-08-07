@@ -16,7 +16,7 @@ func getNextDataSetWriterId() uint16 {
 }
 
 type PublicationMessage struct {
-	resource        v1.Resource
+	resource        v1.ResourceType
 	source          *v1.Oi4Identifier
 	correlationId   string
 	publicationMode v1.PublicationMode
@@ -30,7 +30,7 @@ type PublicationPublisher interface {
 }
 
 type Publication interface {
-	getResource() v1.Resource
+	getResource() v1.ResourceType
 	triggerPublication(byInterval bool, onRequest bool, correlationId string)
 	stop()
 	start()
@@ -40,12 +40,12 @@ type Publication interface {
 	getParent() PublicationPublisher
 }
 
-// we definitely need a mutex there :D
+// PublicationImpl we definitely need a mutex there :D
 type PublicationImpl[T interface{}] struct {
 	Publication
 	doPublishOnRegistration bool
 	parent                  PublicationPublisher
-	resource                v1.Resource
+	resource                v1.ResourceType
 	publicationMode         v1.PublicationMode
 	publicationConfig       v1.PublicationConfig
 	statusCode              v1.StatusCode
@@ -57,7 +57,7 @@ type PublicationImpl[T interface{}] struct {
 	stopIntervalTicker      chan struct{}
 }
 
-func CreatePublication[T interface{}](resource v1.Resource, publishOnRegistration bool) *PublicationImpl[T] {
+func CreatePublication[T interface{}](resource v1.ResourceType, publishOnRegistration bool) *PublicationImpl[T] {
 	return &PublicationImpl[T]{
 		resource:                resource,
 		publicationMode:         v1.PublicationMode_ON_REQUEST_1,
@@ -131,7 +131,7 @@ func (p *PublicationImpl[T]) getParent() PublicationPublisher {
 	return p.parent
 }
 
-func (p *PublicationImpl[T]) getResource() v1.Resource {
+func (p *PublicationImpl[T]) getResource() v1.ResourceType {
 	return p.resource
 }
 
@@ -167,7 +167,7 @@ func (p *PublicationImpl[T]) triggerPublication(byInterval bool, onRequest bool,
 
 func (p *PublicationImpl[T]) startPublicationTimer(newPublicationInterval time.Duration, newPublicationMode v1.PublicationMode) {
 
-	// really really shaky this function :D
+	// really, really shaky this function :D
 	resetTimerInterval := false
 	resetTimerMode := false
 	if p.publicationInterval != newPublicationInterval && newPublicationInterval != 0 {

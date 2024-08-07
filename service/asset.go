@@ -11,7 +11,7 @@ type Oi4Asset struct {
 	parent *Oi4Application
 	mam    *oi4.MasterAssetModel
 
-	publicationsList map[oi4.Resource]Publication
+	publicationsList map[oi4.ResourceType]Publication
 	publicationMutex sync.RWMutex
 }
 
@@ -19,12 +19,12 @@ func CreateNewAsset(mam *oi4.MasterAssetModel) *Oi4Asset {
 	asset := &Oi4Asset{
 		parent:           nil,
 		mam:              mam,
-		publicationsList: make(map[oi4.Resource]Publication),
+		publicationsList: make(map[oi4.ResourceType]Publication),
 		publicationMutex: sync.RWMutex{},
 	}
 
-	asset.RegisterPublication(CreatePublication[*oi4.Health](oi4.Resource_Health, true).SetData(&oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5).SetPublicationInterval(60 * time.Second))
-	asset.RegisterPublication(CreatePublication[*oi4.MasterAssetModel](oi4.Resource_MAM, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5))
+	asset.RegisterPublication(CreatePublication[*oi4.Health](oi4.ResourceHealth, true).SetData(&oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5).SetPublicationInterval(60 * time.Second))
+	asset.RegisterPublication(CreatePublication[*oi4.MasterAssetModel](oi4.ResourceMam, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5))
 
 	return asset
 }
@@ -49,7 +49,7 @@ func (asset *Oi4Asset) RegisterPublication(publication Publication) error {
 }
 
 func (asset *Oi4Asset) UpdateHealth(health oi4.Health) {
-	asset.publicationsList[oi4.Resource_Health].(*PublicationImpl[*oi4.Health]).SetData(&health)
+	asset.publicationsList[oi4.ResourceHealth].(*PublicationImpl[*oi4.Health]).SetData(&health)
 }
 
 func (asset *Oi4Asset) setParent(parent *Oi4Application) error {

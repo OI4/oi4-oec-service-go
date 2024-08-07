@@ -13,27 +13,27 @@ import (
 
 func main() {
 
-	oi4Application := application.CreateNewApplication(v1.ServiceType_OTConnector, &v1.MasterAssetModel{
+	oi4Application := application.CreateNewApplication(v1.ServiceTypeOTConnector, &v1.MasterAssetModel{
 		Manufacturer: v1.LocalizedText{
-			"en_us": "Bitschubser",
+			"en_us": "ACME",
 		},
-		ManufacturerUri:    "bitschubser.dev",
+		ManufacturerUri:    "acme.com",
 		Model:              "SampleApplication",
-		ProductCode:        "08",
+		ProductCode:        "FC#156",
 		HardwareRevision:   "0",
 		SoftwareRevision:   "0",
 		DeviceRevision:     "0",
 		DeviceManual:       "",
-		DeviceClass:        "PerpetuumMobile",
-		SerialNumber:       "15",
-		ProductInstanceUri: "bitschubser.dev",
+		DeviceClass:        `PerpetuumMobile`,
+		SerialNumber:       "F87263976#4",
+		ProductInstanceUri: "acme.com",
 		RevisionCounter:    0,
 		Description: v1.LocalizedText{
 			"en_us": "Cool Application",
 		},
 	})
 
-	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.ResourceData, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -49,9 +49,9 @@ func main() {
 
 	oi4Asset := application.CreateNewAsset(&v1.MasterAssetModel{
 		Manufacturer: v1.LocalizedText{
-			"en_us": "Bitschubser",
+			"en_us": "ACME",
 		},
-		ManufacturerUri:    "bitschubser.dev",
+		ManufacturerUri:    "acme.com",
 		Model:              "SampleAsset",
 		ProductCode:        "08",
 		HardwareRevision:   "0",
@@ -60,14 +60,14 @@ func main() {
 		DeviceManual:       "",
 		DeviceClass:        "PerpetuumMobile",
 		SerialNumber:       "15",
-		ProductInstanceUri: "bitschubser.dev",
+		ProductInstanceUri: "acme.com",
 		RevisionCounter:    0,
 		Description: v1.LocalizedText{
 			"en_us": "Cool Asset",
 		},
 	})
 
-	dataAssetPublication := application.CreatePublication[v1.Oi4Data](v1.Resource_Data, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
+	dataAssetPublication := application.CreatePublication[v1.Oi4Data](v1.ResourceData, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
 	assetTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -83,9 +83,9 @@ func main() {
 	oi4Application.RegisterAsset(oi4Asset)
 
 	if err := oi4Application.Start(&mqtt.MQTTClientOptions{
-		Host:     "192.168.178.217",
-		Port:     1883,
-		Tls:      false,
+		Host:     "127.0.0.1",
+		Port:     8883,
+		Tls:      true,
 		Username: "oi4",
 		Password: "oi4",
 	}); err != nil {
