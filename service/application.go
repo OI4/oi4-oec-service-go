@@ -147,7 +147,9 @@ func (app *Oi4Application) sendPublicationMessage(publication PublicationMessage
 			nil,
 		)
 
-		err := app.mqttClient.PublishResource(tp.ToString(), opcmessages.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, publication.source, publication.dataSetWriterId, publication.correlationId, publication.data))
+		dswId := opcmessages.GetDataSetWriterId(oi4.ResourceHealth, *source)
+
+		err := app.mqttClient.PublishResource(tp.ToString(), opcmessages.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.resource, publication.source, dswId, publication.correlationId, publication.data))
 		if err != nil {
 			return
 		}
@@ -201,7 +203,6 @@ func (app *Oi4Application) sendGracefulShutdown() {
 		resource:        oi4.ResourceHealth,
 		statusCode:      oi4.Status_Good,
 		source:          app.mam.ToOi4Identifier(),
-		dataSetWriterId: getNextDataSetWriterId(),
 		publicationMode: oi4.PublicationMode_APPLICATION_SOURCE_5,
 		data:            &oi4.Health{Health: oi4.Health_Normal, HealthScore: 0},
 	})

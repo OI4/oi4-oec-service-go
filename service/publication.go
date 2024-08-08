@@ -6,15 +6,6 @@ import (
 	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
 )
 
-var dataSetWriterId uint16 = 10
-
-func getNextDataSetWriterId() uint16 {
-	nextId := dataSetWriterId
-	dataSetWriterId++
-	// this could overflow....
-	return nextId
-}
-
 type PublicationMessage struct {
 	resource        v1.ResourceType
 	source          *v1.Oi4Identifier
@@ -22,7 +13,6 @@ type PublicationMessage struct {
 	publicationMode v1.PublicationMode
 	data            interface{}
 	statusCode      v1.StatusCode
-	dataSetWriterId uint16
 }
 
 type PublicationPublisher interface {
@@ -50,7 +40,6 @@ type PublicationImpl[T interface{}] struct {
 	publicationConfig       v1.PublicationConfig
 	statusCode              v1.StatusCode
 	source                  *v1.Oi4Identifier
-	dataSetWriterId         uint16
 	data                    T
 	publicationInterval     time.Duration
 	getDataFunc             func() T
@@ -65,7 +54,6 @@ func CreatePublication[T interface{}](resource v1.ResourceType, publishOnRegistr
 		statusCode:              0,
 		publicationConfig:       v1.PublicationConfig_NONE_0,
 		publicationInterval:     0,
-		dataSetWriterId:         getNextDataSetWriterId(),
 	}
 
 	return &publication
@@ -154,7 +142,6 @@ func (p *PublicationImpl[T]) triggerPublication(byInterval bool, onRequest bool,
 			resource:        p.resource,
 			statusCode:      p.statusCode,
 			publicationMode: p.publicationMode,
-			dataSetWriterId: p.dataSetWriterId,
 			correlationId:   correlationId,
 			source:          p.source,
 		}
