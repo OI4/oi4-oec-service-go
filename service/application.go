@@ -47,8 +47,8 @@ func CreateNewApplication(serviceType oi4.ServiceType, mam *oi4.MasterAssetModel
 	}
 
 	// register built-in publications
-	application.RegisterPublication(CreatePublication[*oi4.Health](oi4.ResourceHealth, true).SetData(&oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_2).SetPublicationInterval(60 * time.Second))
-	application.RegisterPublication(CreatePublication[*oi4.MasterAssetModel](oi4.ResourceMam, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_2))
+	application.RegisterPublication(CreatePublication[*oi4.Health](oi4.ResourceHealth, true).SetData(&oi4.Health{Health: oi4.Health_Normal, HealthScore: 100}).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5).SetPublicationInterval(60 * time.Second))
+	application.RegisterPublication(CreatePublication[*oi4.MasterAssetModel](oi4.ResourceMam, true).SetData(mam).SetPublicationMode(oi4.PublicationMode_APPLICATION_SOURCE_5))
 
 	application.RegisterPublication(CreatePublication[[]oi4.ResourceType](oi4.ResourceProfile, false).SetDataFunc(func() []oi4.ResourceType {
 		resources := make([]oi4.ResourceType, 0)
@@ -72,6 +72,7 @@ func (app *Oi4Application) RegisterPublication(publication Publication) error {
 	}
 
 	publication.setParent(app)
+	publication.setSource(app.mam.ToOi4Identifier())
 	app.publicationsList[publication.getResource()] = publication
 	publication.start()
 
@@ -121,6 +122,10 @@ func (app *Oi4Application) UpdateHealth(health oi4.Health) {
 	app.publicationsList[oi4.ResourceHealth].(*PublicationImpl[*oi4.Health]).SetData(&health)
 }
 
+func (app *Oi4Application) GetMam() *oi4.MasterAssetModel {
+	return app.mam
+}
+
 func (app *Oi4Application) sendPublicationMessage(publication PublicationMessage) {
 	if app.mqttClient != nil && publication.data != nil {
 		var source *oi4.Oi4Identifier
@@ -159,9 +164,6 @@ func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) erro
 	}
 	app.mqttClient = client
 
-	// TODO This should go to the trigger publication for application section
-	app.sendStartUp()
-
 	// trigger publications for application
 	for _, publication := range app.publicationsList {
 		if publication.publishOnRegistration() {
@@ -194,24 +196,13 @@ func (app *Oi4Application) Start(mqttClientOptions *mqtt.MQTTClientOptions) erro
 	return nil
 }
 
-func (app *Oi4Application) sendStartUp() {
-	app.sendPublicationMessage(PublicationMessage{
-		resource:        oi4.ResourceHealth,
-		statusCode:      oi4.Status_Good,
-		source:          app.mam.ToOi4Identifier(),
-		dataSetWriterId: getNextDataSetWriterId(),
-		publicationMode: oi4.PublicationMode_SOURCE_3,
-		data:            &oi4.Health{Health: oi4.Health_Normal, HealthScore: 100},
-	})
-}
-
 func (app *Oi4Application) sendGracefulShutdown() {
 	app.sendPublicationMessage(PublicationMessage{
 		resource:        oi4.ResourceHealth,
 		statusCode:      oi4.Status_Good,
 		source:          app.mam.ToOi4Identifier(),
 		dataSetWriterId: getNextDataSetWriterId(),
-		publicationMode: oi4.PublicationMode_SOURCE_3,
+		publicationMode: oi4.PublicationMode_APPLICATION_SOURCE_5,
 		data:            &oi4.Health{Health: oi4.Health_Normal, HealthScore: 0},
 	})
 }

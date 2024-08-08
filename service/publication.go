@@ -58,7 +58,7 @@ type PublicationImpl[T interface{}] struct {
 }
 
 func CreatePublication[T interface{}](resource v1.ResourceType, publishOnRegistration bool) *PublicationImpl[T] {
-	return &PublicationImpl[T]{
+	publication := PublicationImpl[T]{
 		resource:                resource,
 		publicationMode:         v1.PublicationMode_ON_REQUEST_1,
 		doPublishOnRegistration: publishOnRegistration,
@@ -67,6 +67,8 @@ func CreatePublication[T interface{}](resource v1.ResourceType, publishOnRegistr
 		publicationInterval:     0,
 		dataSetWriterId:         getNextDataSetWriterId(),
 	}
+
+	return &publication
 }
 
 func (p *PublicationImpl[T]) SetPublicationMode(newMode v1.PublicationMode) *PublicationImpl[T] {

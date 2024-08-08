@@ -33,7 +33,9 @@ func main() {
 		},
 	})
 
-	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.ResourceData, false).SetPublicationMode(v1.PublicationMode_APPLICATION_2)
+	//oi4Identifier := *oi4Application.GetMam().ToOi4Identifier()
+
+	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.ResourceData, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -76,7 +78,6 @@ func main() {
 			dataAssetPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
 			counter++
 		}
-
 	}()
 	oi4Asset.RegisterPublication(dataAssetPublication)
 
