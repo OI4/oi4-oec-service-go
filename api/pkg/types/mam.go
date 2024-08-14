@@ -3,7 +3,7 @@ package types
 type MasterAssetModel struct {
 	Manufacturer       LocalizedText `json:"Manufacturer"`
 	ManufacturerUri    string        `json:"ManufacturerUri"`
-	Model              string        `json:"Model"`
+	Model              LocalizedText `json:"Model"`
 	ProductCode        string        `json:"ProductCode"`
 	HardwareRevision   string        `json:"HardwareRevision"`
 	SoftwareRevision   string        `json:"SoftwareRevision"`
@@ -19,7 +19,7 @@ type MasterAssetModel struct {
 func (mam *MasterAssetModel) ToOi4Identifier() *Oi4Identifier {
 	return &Oi4Identifier{
 		ManufacturerUri: mam.ManufacturerUri,
-		Model:           mam.Model,
+		Model:           mam.Model.Text,
 		ProductCode:     mam.ProductCode,
 		SerialNumber:    mam.SerialNumber,
 	}

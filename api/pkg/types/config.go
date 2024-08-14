@@ -1,3 +1,7 @@
 package types
 
-// TODO: config :D
+type PublishConfig struct {
+}
+
+type SetConfig struct {
+}

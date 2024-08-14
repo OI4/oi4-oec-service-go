@@ -1,14 +1,13 @@
 package types
 
 type LicenseComponent struct {
-	Component      string   `json:"Component"`
-	LicAuthors     []string `json:"LicAuthors,omitempty"`
-	LicAddText     string   `json:"LicAddText,omitempty"`
-	SPDXIdentifier string   `json:"SPDXIdentifier,omitempty"`
+	Component  string   `json:"Component"`
+	LicAuthors []string `json:"LicAuthors,omitempty"`
+	LicAddText string   `json:"LicAddText,omitempty"`
 }
 
 type License struct {
-	Components []interface{} `json:"Components"`
+	Components []LicenseComponent `json:"Components"`
 }
 
 type LicenseText struct {

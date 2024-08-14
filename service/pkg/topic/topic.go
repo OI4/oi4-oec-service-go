@@ -82,7 +82,7 @@ func ParseTopic(topic string) (*Topic, error) {
 
 	var source *oi4.Oi4Identifier
 	if len(parts) >= 12 {
-		source, err = oi4.ParseOi4IdentifierFromArray(parts[8:13], true)
+		source, err = oi4.ParseOi4IdentifierFromArray(parts[8:12], true)
 		if err != nil {
 			return nil, &Error{
 				Message: "invalid source",
@@ -106,9 +106,9 @@ func ParseTopic(topic string) (*Topic, error) {
 }
 
 func (t *Topic) ToString() string {
-	topic := fmt.Sprintf("%s/%s/%s/%s/%s", Oi4Namespace, t.ServiceType, t.Oi4Identifier.ToDnpString(), t.Method, t.Resource)
+	topic := fmt.Sprintf("%s/%s/%s/%s/%s", Oi4Namespace, t.ServiceType, t.Oi4Identifier.ToString(), t.Method, t.Resource)
 	if t.Source != nil {
-		topic = fmt.Sprintf("%s/%s", topic, t.Source.ToDnpString())
+		topic = fmt.Sprintf("%s/%s", topic, t.Source.ToString())
 	}
 	if t.Category != nil {
 		topic = fmt.Sprintf("%s/%s", topic, *t.Category)

@@ -21,6 +21,8 @@ type PublicationPublisher interface {
 
 type Publication interface {
 	getResource() v1.ResourceType
+	getSource() *v1.Oi4Identifier
+	getPublicationMode() v1.PublicationMode
 	triggerPublication(byInterval bool, onRequest bool, correlationId string)
 	stop()
 	start()
@@ -123,6 +125,14 @@ func (p *PublicationImpl[T]) getParent() PublicationPublisher {
 
 func (p *PublicationImpl[T]) getResource() v1.ResourceType {
 	return p.resource
+}
+
+func (p *PublicationImpl[T]) getSource() *v1.Oi4Identifier {
+	return p.source
+}
+
+func (p *PublicationImpl[T]) getPublicationMode() v1.PublicationMode {
+	return p.publicationMode
 }
 
 func (p *PublicationImpl[T]) publishOnRegistration() bool {

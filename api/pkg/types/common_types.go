@@ -1,6 +1,9 @@
 package types
 
-type LocalizedText map[string]string
+type LocalizedText struct {
+	Locale string `json:"Locale"`
+	Text   string `json:"Text"`
+}
 type KeyValuePair struct {
 	Key   string      `json:"Key"`
 	Value interface{} `json:"Value"`

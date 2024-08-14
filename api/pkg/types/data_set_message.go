@@ -27,7 +27,7 @@ type DataSetMessage struct {
 	// The MetaDataVersion corresponds with the ConfigurationVersion of a DataSetMetaData message (9.2.5).
 	//
 	// NOTE MetaDataVersion might be of interest for resources with changing parameter sets, such as data. Resources with fixed metadata set do not benefit from it.
-	MetaDataVersion ConfigurationVersionDataType `json:"MetaDataVersion,omitempty"`
+	MetaDataVersion *ConfigurationVersionDataType `json:"MetaDataVersion,omitempty"`
 
 	// Value range: <DateTime>
 	// Type: String
@@ -65,7 +65,7 @@ type DataSetMessage struct {
 	// The Source is mandatory, but does not belong to OPC UA DataSetMessage according to Part 14-7.2.3.3. In combination with the used resource in the topic, the Source, together with the Filter, contains the readable reference to the DataSetWriterId and is identical to the Source in the topic (8.1.6) if present. The Source always describes the asset providing the information. Therefore the Source is the Oi4Identifer of the application or device.
 	//
 	// NOTE The Source helps to combine the data in the Payload with the related source. In OPC UA context this is done via DataSetWriterId, but this is not very intuitive and might need additional actions to get missing information via PublicationList defined in 9.3.11.
-	Source Oi4IdentifierPath `json:"Source"`
+	Source string `json:"Source"`
 
 	// Value range: <Object>
 	// Type: Object

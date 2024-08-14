@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
 
 	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
 	"github.com/OI4/oi4-oec-service-go/service/pkg/tls"
+	tp "github.com/OI4/oi4-oec-service-go/service/pkg/topic"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -74,28 +74,23 @@ func (client *MQTTClient) PublishResource(topic string, data interface{}) error 
 	return nil
 }
 
-var topicRegex, _ = regexp.Compile(`Oi4\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)(\/([^/\s]+))?`)
-
-func (client *MQTTClient) RegisterGetHandler(serviceType v1.ServiceType, appId v1.Oi4IdentifierPath, handler func(resource v1.ResourceType, source v1.Oi4IdentifierPath, networkMessage v1.NetworkMessage)) {
-	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId)
-	client.client.Subscribe(topic, 0, func(_ mqtt.Client, message mqtt.Message) {
+func (client *MQTTClient) RegisterGetHandler(serviceType v1.ServiceType, appId v1.Oi4Identifier, handler func(resource v1.ResourceType, source *v1.Oi4Identifier, networkMessage v1.NetworkMessage)) {
+	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId.ToString())
+	client.client.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
 		networkMessage := v1.NetworkMessage{}
 		err := json.Unmarshal(message.Payload(), &networkMessage)
 		if err != nil {
 			log.Printf("%s %s topic:%s", "error unmarshalling network message", err, message.Topic())
 			return
 		}
-		match := topicRegex.FindStringSubmatch(message.Topic())
-		if match == nil {
-			log.Printf("%s topic:%s", "invalid topic for matcher", message.Topic())
+		topic, err := tp.ParseTopic(message.Topic())
+
+		if err != nil {
+			log.Printf("topic:%s invalid with: %v", message.Topic(), err)
 			return
 		}
-		// sericeType := match[1]
-		// appId := match[2]
-		// method := match[3]
-		resource := match[7]
-		source := match[9]
-		handler(v1.ResourceType(resource), v1.Oi4IdentifierPath(source), networkMessage)
+
+		handler(topic.Resource, topic.Source, networkMessage)
 	})
 }
 

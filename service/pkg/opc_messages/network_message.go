@@ -9,20 +9,20 @@ import (
 
 var counter uint16 = 0
 
-// quick and dirty
+// CreateNetworkMessage quick and dirty
 func CreateNetworkMessage(applicationOi4Identifier *v1.Oi4Identifier, serviceType v1.ServiceType, resourceType v1.ResourceType, assetOi4Identifier *v1.Oi4Identifier, datasetWriterId uint16, correlationId string, payload interface{}) *v1.NetworkMessage {
 	currentTime := time.Now().UTC()
 
 	message := &v1.DataSetMessage{
 		Timestamp:       currentTime.Format(time.RFC3339),
-		DataSetWriterId: uint16(datasetWriterId),
+		DataSetWriterId: datasetWriterId,
 		Payload:         payload,
 	}
 
 	if assetOi4Identifier != nil {
-		message.Source = v1.Oi4IdentifierPath(assetOi4Identifier.ToString())
+		message.Source = assetOi4Identifier.ToString()
 	} else {
-		message.Source = v1.Oi4IdentifierPath(applicationOi4Identifier.ToString())
+		message.Source = applicationOi4Identifier.ToString()
 	}
 
 	networkMessage := &v1.NetworkMessage{

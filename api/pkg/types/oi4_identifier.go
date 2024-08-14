@@ -15,7 +15,7 @@ func (w *Error) Error() string {
 	return fmt.Sprintf("%s: %v", w.Message, w.Err)
 }
 
-type Oi4IdentifierPath string
+//type Oi4IdentifierString string
 
 type Oi4Identifier struct {
 	ManufacturerUri string `json:"ManufacturerUri"`
@@ -40,7 +40,8 @@ func ParseOi4Identifier(id string, decode bool) (*Oi4Identifier, error) {
 		return nil, fmt.Errorf("invalid identifier: %s", id)
 	}
 
-	manufacturerUri, err := getPart(parts, 0, false)
+	manufacturerUri, _ := getPart(parts, 0, false)
+
 	model, err := getPart(parts, 1, decode)
 	if err != nil {
 		return nil, &Error{
@@ -48,6 +49,7 @@ func ParseOi4Identifier(id string, decode bool) (*Oi4Identifier, error) {
 			Err:     err,
 		}
 	}
+
 	productCode, err := getPart(parts, 2, decode)
 	if err != nil {
 		return nil, &Error{
@@ -55,6 +57,7 @@ func ParseOi4Identifier(id string, decode bool) (*Oi4Identifier, error) {
 			Err:     err,
 		}
 	}
+
 	serialNumber, err := getPart(parts, 3, decode)
 	if err != nil {
 		return nil, &Error{
@@ -86,10 +89,14 @@ func getPart(parts []string, index int, decode bool) (string, error) {
 	return part, err
 }
 
-func (ident *Oi4Identifier) ToString() string {
+func (ident *Oi4Identifier) ToPlainString() string {
 	return fmt.Sprintf("%s/%s/%s/%s", ident.ManufacturerUri, ident.Model, ident.ProductCode, ident.SerialNumber)
 }
 
-func (ident *Oi4Identifier) ToDnpString() string {
-	return fmt.Sprintf("%s/%s/%s/%s", ident.ManufacturerUri, dnp.Encode(ident.Model), dnp.Encode(ident.ProductCode), dnp.Encode(ident.SerialNumber))
+func (ident *Oi4Identifier) ToString() string {
+	return fmt.Sprintf("%s/%s/%s/%s", strings.ToLower(ident.ManufacturerUri), dnp.Encode(ident.Model), dnp.Encode(ident.ProductCode), dnp.Encode(ident.SerialNumber))
+}
+
+func (ident *Oi4Identifier) Equals(other *Oi4Identifier) bool {
+	return ident.ManufacturerUri == other.ManufacturerUri && ident.Model == other.Model && ident.ProductCode == other.ProductCode && ident.SerialNumber == other.SerialNumber
 }

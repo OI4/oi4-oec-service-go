@@ -31,6 +31,7 @@ func TestTopicToStringWithSomeOptionalFieldsSet(t *testing.T) {
 	topic := NewTopic(serviceType, *appId, method, resource, source, nil, nil)
 	expected := "Oi4/OTConnector/acme.com/FBC/fbc,25183z/FBC,23123/Get/MAM/acme.com/matches/m,2F42-A/F234,23862"
 	assert.Equal(t, expected, topic.ToString())
+
 }
 
 func TestParseTopicWithValidTopic(t *testing.T) {
@@ -45,6 +46,10 @@ func TestParseTopicWithValidTopic(t *testing.T) {
 	assert.Equal(t, source, result.Source)
 	assert.Equal(t, "Category", *result.Category)
 	assert.Equal(t, "Filter", *result.Filter)
+
+	result, err = ParseTopic("Oi4/OTConnector/acme.com/SampleApplication/FC,23156/F87263976,234/Get/MAM/acme.com/SampleApplication/FC,23156/F87263976,234")
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
 }
 
 func TestParseTopicWithInvalidNamespace(t *testing.T) {

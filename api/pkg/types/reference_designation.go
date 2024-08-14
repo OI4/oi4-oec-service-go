@@ -1,9 +1,9 @@
 package types
 
 type ReferenceDesignationParent struct {
-	Value         string            `json:"Value"`
-	Local         string            `json:"Local,omitempty"`
-	Oi4Identifier Oi4IdentifierPath `json:"Oi4Identifier,omitempty"`
+	Value         string        `json:"Value"`
+	Local         string        `json:"Local,omitempty"`
+	Oi4Identifier Oi4Identifier `json:"Oi4Identifier,omitempty"`
 }
 
 type ReferenceDesignationFunctionProductOrLocation struct {
@@ -21,5 +21,7 @@ type ReferenceDesignationFunction struct {
 }
 
 type ReferenceDesignation struct {
-	Function *ReferenceDesignationFunction `json:"Function"`
+	Function *ReferenceDesignationFunction `json:"Function,omitempty"`
+	Product  *ReferenceDesignationFunction `json:"Product,omitempty"`
+	Location *ReferenceDesignationFunction `json:"Location,omitempty"`
 }

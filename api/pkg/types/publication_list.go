@@ -24,12 +24,12 @@ const (
 )
 
 type PublicationList struct {
-	ResourceType    `json:"ResourceType"`
-	Source          Oi4IdentifierPath  `json:"Source"`
-	Filter          *interface{}       `json:"Filter,omitempty"`
-	DataSetWriterId uint16             `json:"DataSetWriterId"`
-	Mode            PublicationMode    `json:"Mode"`
-	Interval        uint32             `json:"Interval"`
-	Precisions      map[string]float32 `json:"Precisions"`
-	Config          PublicationConfig  `json:"PublicationConfig"`
+	ResourceType    `json:"Resource"`
+	Source          string              `json:"Source"`
+	Filter          *string             `json:"Filter,omitempty"`
+	DataSetWriterId uint16              `json:"DataSetWriterId"`
+	Mode            *PublicationMode    `json:"Mode"`
+	Interval        *uint32             `json:"Interval,omitempty"`
+	Precisions      *map[string]float32 `json:"Precisions,omitempty"`
+	Config          *PublicationConfig  `json:"PublicationConfig,omitempty"`
 }

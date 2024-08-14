@@ -1,3 +1,4 @@
 package types
 
-// TODO
+type RTLicense struct {
+}
