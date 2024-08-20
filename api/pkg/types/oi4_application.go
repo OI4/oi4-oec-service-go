@@ -1,5 +1,5 @@
 package types
 
 type Oi4Application interface {
-	ResourceChanged(resource ResourceType, source Oi4Source)
+	ResourceChanged(resource ResourceType, source Oi4Source, resourceTag *string)
 }

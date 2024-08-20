@@ -44,16 +44,15 @@ func main() {
 	oi4Application := application.CreateNewApplication(v1.ServiceTypeOTConnector, applicationSource)
 
 	dataApplicationPublication := application.CreatePublication[v1.Oi4Data](v1.ResourceData, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
+
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
 		for {
 			<-applicationTicker.C
-			dataApplicationPublication.SetData(v1.Oi4Data{PrimaryValue: counter})
 
-			data := v1.Oi4Data{PrimaryValue: counter}
-			//applicationSource.UpdateData(*data)
-			dataApplicationPublication.SetData(data)
+			var data any = v1.Oi4Data{PrimaryValue: counter}
+			applicationSource.UpdateData(&data, "Oi4Data")
 
 			counter++
 		}

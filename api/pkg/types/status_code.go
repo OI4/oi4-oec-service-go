@@ -145,7 +145,7 @@ const (
 	Status_BadHistoryOperationUnsupported                                  StatusCode = 0x80720000 //The server does not support the requested operation.
 	Status_BadInvalidTimestampArgument                                     StatusCode = 0x80BD0000 //The defined timestamp to return was invalid.
 	Status_BadWriteNotSupported                                            StatusCode = 0x80730000 //The server does not support writing the combination of value, status and timestamps provided.
-	Status_BadTypeMismatch                                                 StatusCode = 0x80740000 //The value supplied for the attribute is not of the same type as the attribute's value.
+	Status_BadTypeMismatch                                                 StatusCode = 0x80740000 //The value supplied for the attribute is not of the same type as the attribute'Pv value.
 	Status_BadMethodInvalid                                                StatusCode = 0x80750000 //The method id does not refer to a method for the specified object.
 	Status_BadArgumentsMissing                                             StatusCode = 0x80760000 //The client did not specify all of the input arguments for the method.
 	Status_BadNotExecutable                                                StatusCode = 0x81110000 //The executable attribute does not allow the execution of the method.
@@ -259,7 +259,7 @@ const (
 	Status_UncertainConfigurationError                                     StatusCode = 0x420F0000 //The value may not be accurate due to a configuration issue.
 	Status_GoodCascadeInitializationAcknowledged                           StatusCode = 0x04010000 //The value source supports cascade handshaking and the value has been Initialized based on an initialization request from a cascade secondary.
 	Status_GoodCascadeInitializationRequest                                StatusCode = 0x04020000 //The value source supports cascade handshaking and is requesting initialization of a cascade primary.
-	Status_GoodCascadeNotInvited                                           StatusCode = 0x04030000 //The value source supports cascade handshaking, however, the source’s current state does not allow for cascade.
+	Status_GoodCascadeNotInvited                                           StatusCode = 0x04030000 //The value source supports cascade handshaking, however, the source’Pv current state does not allow for cascade.
 	Status_GoodCascadeNotSelected                                          StatusCode = 0x04040000 //The value source supports cascade handshaking, however, the source has not selected the corresponding cascade primary for use.
 	Status_GoodFaultStateActive                                            StatusCode = 0x04070000 //There is a fault state condition active in the value source.
 	Status_GoodInitiateFaultState                                          StatusCode = 0x04080000 //A fault state condition is being requested of the destination.

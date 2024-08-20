@@ -190,7 +190,7 @@ func (app *Oi4ApplicationImpl) sendPublicationMessage(publication PublicationMes
 			publication.resource,
 			source,
 			nil,
-			nil,
+			publication.filter,
 		)
 
 		dswId := opcmessages.GetDataSetWriterId(publication.resource, *source)
@@ -248,7 +248,7 @@ func (app *Oi4ApplicationImpl) Start(mqttClientOptions *mqtt.MQTTClientOptions) 
 	return nil
 }
 
-func (app *Oi4ApplicationImpl) ResourceChanged(resource oi4.ResourceType, source oi4.Oi4Source) {
+func (app *Oi4ApplicationImpl) ResourceChanged(resource oi4.ResourceType, source oi4.Oi4Source, _ *string) {
 	var list map[oi4.ResourceType]Publication
 	sourceId := source.GetOi4Identifier()
 	if app.oi4Identifier.Equals(sourceId) {

@@ -13,6 +13,7 @@ type PublicationMessage struct {
 	publicationMode v1.PublicationMode
 	data            interface{}
 	statusCode      v1.StatusCode
+	filter          *string
 }
 
 type PublicationPublisher interface {
@@ -38,6 +39,7 @@ type PublicationImpl[T interface{}] struct {
 	doPublishOnRegistration bool
 	parent                  PublicationPublisher
 	resource                v1.ResourceType
+	filter                  *string
 	publicationMode         v1.PublicationMode
 	publicationConfig       v1.PublicationConfig
 	statusCode              v1.StatusCode
@@ -81,6 +83,13 @@ func (p *PublicationImpl[T]) SetPublicationInterval(newPublicationInterval time.
 
 func (p *PublicationImpl[T]) SetStatusCode(status v1.StatusCode) *PublicationImpl[T] {
 	p.statusCode = status
+
+	p.triggerPublication(false, false, "")
+	return p
+}
+
+func (p *PublicationImpl[T]) SetFilter(filter *string) *PublicationImpl[T] {
+	p.filter = filter
 
 	p.triggerPublication(false, false, "")
 	return p
@@ -154,6 +163,7 @@ func (p *PublicationImpl[T]) triggerPublication(byInterval bool, onRequest bool,
 			publicationMode: p.publicationMode,
 			correlationId:   correlationId,
 			source:          p.source,
+			filter:          p.filter,
 		}
 		if p.getDataFunc != nil {
 			message.data = p.getDataFunc()

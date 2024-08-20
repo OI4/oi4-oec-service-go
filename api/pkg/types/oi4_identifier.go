@@ -6,17 +6,6 @@ import (
 	"strings"
 )
 
-type Error struct {
-	Message string
-	Err     error
-}
-
-func (w *Error) Error() string {
-	return fmt.Sprintf("%s: %v", w.Message, w.Err)
-}
-
-//type Oi4IdentifierString string
-
 type Oi4Identifier struct {
 	ManufacturerUri string `json:"ManufacturerUri"`
 	Model           string `json:"Mode"`

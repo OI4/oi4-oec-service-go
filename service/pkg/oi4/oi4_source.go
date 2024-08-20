@@ -44,7 +44,7 @@ func (source *SourceImpl) GetHealth() v1.Health {
 func (source *SourceImpl) UpdateHealth(health v1.Health) {
 	source.health = health
 	if source.application != nil {
-		source.application.ResourceChanged(v1.ResourceHealth, source)
+		source.application.ResourceChanged(v1.ResourceHealth, source, nil)
 	}
 }
 
@@ -52,10 +52,10 @@ func (source *SourceImpl) GetData() *any {
 	return source.data
 }
 
-func (source *SourceImpl) UpdateData(data *any) {
+func (source *SourceImpl) UpdateData(data *any, dataTag string) {
 	source.data = data
 	if source.application != nil {
-		source.application.ResourceChanged(v1.ResourceData, source)
+		source.application.ResourceChanged(v1.ResourceData, source, &dataTag)
 	}
 }
 
