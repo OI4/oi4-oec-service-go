@@ -1,0 +1,5 @@
+{
+  "Address": "oi4-oec-broker",
+  "SecurePort": 8883,
+  "MaxPacketSize": 256
+}
