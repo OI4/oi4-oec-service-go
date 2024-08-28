@@ -15,6 +15,9 @@ build_windows: gomodgen
 clean:
 	rm -rf ./bin ./vendor Gopkg.lock
 
+docker_build_local:
+	docker build -t oi4-demo-connector-golang:latest .
+
 gomodgen:
 	go env -w GO111MODULE=on
 	cd api && go mod tidy

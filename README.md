@@ -66,10 +66,16 @@ The demo service can also be build as a binary. The binaries can be build with a
 - Windows `make build_windows`
 
 The binaries will be stored in the bin directory. To execute the binary, just run the binary with the runtime flag and the base path to the configuration files.
-- Linux: `./bin/main -runtime=local base=../docker_configs`
-- MacOs `./bin/main_mac -runtime=local base=../docker_configs`
-- Windows `./bin/main.exe -runtime=local base=../docker_configs`
+- Linux: `./bin/main -runtime=local base=docker_configs`
+- MacOs `./bin/main_mac -runtime=local base=docker_configs`
+- Windows `./bin/main.exe -runtime=local base=docker_configs`
 
+### Build and run the demo service as docker container
+The demo service can also be build as a docker container locally. The docker container can be build with the following make command:
+
+```sh
+make docker_build_local
+```
 
 ## Update go.mod dependencies
 The go.mod file is used to manage the dependencies of the project. It is important to keep it up to date.
