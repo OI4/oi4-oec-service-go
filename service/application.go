@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"github.com/OI4/oi4-oec-service-go/container"
 	"github.com/OI4/oi4-oec-service-go/service/pkg/topic"
 	"sync"
 	"time"
@@ -204,7 +205,17 @@ func (app *Oi4ApplicationImpl) sendPublicationMessage(publication PublicationMes
 }
 
 // Start  application and connect to broker
-func (app *Oi4ApplicationImpl) Start(mqttClientOptions *mqtt.MQTTClientOptions) error {
+func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
+	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
+	credentials := storage.SecretStorage.MqttCredentials
+	pwd, _ := credentials.Password()
+	mqttClientOptions := &mqtt.MQTTClientOptions{
+		Host:     brokerConfig.Address,
+		Port:     int(brokerConfig.SecurePort),
+		Tls:      true,
+		Username: credentials.Username(),
+		Password: pwd,
+	}
 
 	client, err := mqtt.NewMQTTClient(mqttClientOptions)
 	if err != nil {

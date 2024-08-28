@@ -23,16 +23,83 @@ const DefaultMessageBusStorageSubFolder = DefaultOi4Folder + "/mqtt"
 const DefaultApplicationSpecificConfigurationFolder = DefaultOi4Folder + "/app"
 const DefaultApplicationSpecificDataFolder = "/opt/oi4/app"
 
-type Storage struct {
+type BaseStorage struct {
 	FolderPath *string
 }
 
-func newStorage(folderPath string) (*Storage, error) {
+func newStorage(folderPath string) (*BaseStorage, error) {
 	_, err := os.Stat(folderPath)
 	if err != nil {
 		return nil, err
 	}
-	return &Storage{FolderPath: &folderPath}, nil
+	return &BaseStorage{FolderPath: &folderPath}, nil
+}
+
+// ****************************************************************
+// ***                                  MessageBusStorage                                  ***
+// ****************************************************************
+
+type StorageConfiguration struct {
+	ContainerName                        string
+	MessageBusStoragePath                string
+	Oi4CertificateStoragePath            string
+	SecretStoragePath                    string
+	ApplicationSpecificConfigurationPath string
+	ApplicationSpecificDataPath          string
+}
+
+func DefaultStorageConfiguration() *StorageConfiguration {
+	return &StorageConfiguration{
+		ContainerName:                        GetContainerName(),
+		MessageBusStoragePath:                DefaultMessageBusStorageSubFolder,
+		Oi4CertificateStoragePath:            DefaultOi4CertificateStorageSubFolder,
+		SecretStoragePath:                    DefaultSecretsFolder,
+		ApplicationSpecificConfigurationPath: DefaultApplicationSpecificConfigurationFolder,
+		ApplicationSpecificDataPath:          DefaultApplicationSpecificDataFolder,
+	}
+}
+
+type Storage struct {
+	ContainerName               string
+	MessageBusStorage           *MessageBusStorage
+	Oi4CertificateStorage       *Oi4CertificateStorage
+	SecretStorage               *SecretStorage
+	ApplicationSpecificStorages *ApplicationSpecificStorages
+}
+
+func NewContainerStorage(configuration StorageConfiguration) (*Storage, error) {
+	messageBusStorage, err := NewMessageBusStorage(configuration.MessageBusStoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	oi4CertificateStorage, err := NewOi4CertificateStorage(configuration.Oi4CertificateStoragePath, configuration.ContainerName)
+	if err != nil {
+		return nil, err
+	}
+
+	secretStorage, err := NewSecretStorage(configuration.SecretStoragePath)
+	if err != nil {
+		return nil, err
+	}
+
+	applicationSpecificStorages, err := NewApplicationSpecificStorages(configuration.ApplicationSpecificConfigurationPath, configuration.ApplicationSpecificDataPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Storage{
+		ContainerName:               configuration.ContainerName,
+		MessageBusStorage:           messageBusStorage,
+		Oi4CertificateStorage:       oi4CertificateStorage,
+		SecretStorage:               secretStorage,
+		ApplicationSpecificStorages: applicationSpecificStorages,
+	}, nil
+}
+
+func GetContainerName() string {
+	containerName, _ := os.Hostname()
+	return containerName
 }
 
 // ****************************************************************
@@ -40,7 +107,7 @@ func newStorage(folderPath string) (*Storage, error) {
 // ****************************************************************
 
 type MessageBusStorage struct {
-	Storage
+	BaseStorage
 	// Public certificate of the broker.
 	BrokerCertificate *x509.Certificate
 	// Local CA used to sign the MQTT broker certificate.
@@ -101,7 +168,7 @@ func NewMessageBusStorage(folderPath string) (*MessageBusStorage, error) {
 	}
 
 	return &MessageBusStorage{
-		Storage:             *storage,
+		BaseStorage:         *storage,
 		BrokerCertificate:   brokerCertificate,
 		RootCaCertificate:   rootCertificate,
 		SubCaCertificates:   subCaCertificates,
@@ -132,7 +199,7 @@ func parseBrokerConfiguration(configPath string) (*BrokerConfiguration, error) {
 // ****************************************************************
 
 type Oi4CertificateStorage struct {
-	Storage
+	BaseStorage
 	ClientCertificate *x509.Certificate
 	// CA used for validation of certificates.
 	RootCaCertificate *x509.Certificate
@@ -166,7 +233,7 @@ func NewOi4CertificateStorage(folderPath string, containerName string) (*Oi4Cert
 	}
 
 	return &Oi4CertificateStorage{
-		Storage:           *storage,
+		BaseStorage:       *storage,
 		ClientCertificate: clientCertificate,
 		RootCaCertificate: rootCertificate,
 		SubCaCertificates: subCaCertificates,
@@ -178,7 +245,7 @@ func NewOi4CertificateStorage(folderPath string, containerName string) (*Oi4Cert
 // ****************************************************************
 
 type SecretStorage struct {
-	Storage
+	BaseStorage
 	// If present, it contains a username and password, which is used for MQTT authentication
 	MqttCredentials *url.Userinfo
 	// If present, it contains the private PEM encoded key to the according client certificate in the OI4 certificate store.
@@ -211,7 +278,7 @@ func NewSecretStorage(folderPath string) (*SecretStorage, error) {
 	passphrase := readPassphrase(filepath.Join(folderPath, "mqtt_passphrase"))
 
 	return &SecretStorage{
-		Storage:         *storage,
+		BaseStorage:     *storage,
 		MqttCredentials: credentials,
 		MqttPrivateKey:  privateKey,
 		MqttPassphrase:  passphrase,
@@ -376,9 +443,10 @@ func readFile(filePath string) ([]byte, error) {
 	// Open the file
 	file, err := os.Open(filePath)
 	defer func(file *os.File) {
-		err := file.Close()
+		err = file.Close()
 		if err != nil {
-			fmt.Println("Error closing file:", err)
+			// TODO log as debug
+			fmt.Println("Error closing file: "+filePath, err)
 		}
 	}(file)
 	if err != nil {

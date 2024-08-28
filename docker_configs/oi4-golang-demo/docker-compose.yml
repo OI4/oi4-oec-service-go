@@ -1,0 +1,26 @@
+services:
+  oi4-golang-demo:
+    image: oi4-demo-connector-golang:latest
+    container_name: oi4-golang-demo
+    restart: on-failure
+    hostname: F12AB35
+    volumes:
+      - "${BASE_PATH}/etc/oi4/mqtt:/etc/oi4/mqtt"
+      - "${BASE_PATH}/etc/oi4/certs:/etc/oi4/certs"
+      - "${BASE_PATH}/run/secrets:/run/secrets"
+      - "${BASE_PATH}/etc/oi4/config:/etc/oi4/config"
+      - "${BASE_PATH}/etc/oi4/app:/etc/oi4/app"
+      - "${BASE_PATH}/opt/oi4/app:/opt/oi4/app"
+    environment:
+      - OI4_EDGE_EVENT_LEVEL=critical
+      - OI4_EDGE_LOG_LEVEL=informational
+      - TZ=${TZ}
+    networks:
+      oi4:
+        aliases:
+          - oi4-golang-demo
+
+networks:
+  oi4:
+    driver: bridge
+    name: oi4

@@ -1,45 +1,33 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
+	"github.com/OI4/oi4-oec-service-go/container"
 	"math/rand/v2"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	v1 "github.com/OI4/oi4-oec-service-go/api/pkg/types"
 	application "github.com/OI4/oi4-oec-service-go/service"
-	"github.com/OI4/oi4-oec-service-go/service/pkg/mqtt"
 	"github.com/OI4/oi4-oec-service-go/service/pkg/oi4"
 )
 
 func main() {
 
-	applicationSource := oi4.NewApplicationSourceImpl(v1.MasterAssetModel{
-		Manufacturer: v1.LocalizedText{
-			Locale: "en-US",
-			Text:   "ACME",
-		},
-		ManufacturerUri: "acme.com",
-		Model: v1.LocalizedText{
-			Locale: "en-US",
-			Text:   "SampleApplication",
-		},
-		ProductCode:        "FC#156",
-		HardwareRevision:   "",
-		SoftwareRevision:   "0",
-		DeviceRevision:     "0",
-		DeviceManual:       "",
-		DeviceClass:        fmt.Sprintf("Oi4.%s", string(v1.ServiceTypeOTConnector)),
-		SerialNumber:       "F87263976#4",
-		ProductInstanceUri: "acme.com",
-		RevisionCounter:    0,
-		Description: v1.LocalizedText{
-			Locale: "en-US",
-			Text:   "Cool Application",
-		},
-	})
+	configuration, mam, err := getStorage()
+	if err != nil {
+		wd, _ := os.Getwd()
+		fmt.Println("Working directory:", wd)
+		fmt.Println("Failed to retrieve storage configuration:", err)
+		panic(err)
+	}
+
+	applicationSource := oi4.NewApplicationSourceImpl(*mam)
 
 	oi4Application := application.CreateNewApplication(v1.ServiceTypeOTConnector, applicationSource)
 
@@ -109,13 +97,7 @@ func main() {
 
 	oi4Application.RegisterAsset(oi4Asset)
 
-	if err := oi4Application.Start(&mqtt.MQTTClientOptions{
-		Host:     "127.0.0.1",
-		Port:     8883,
-		Tls:      true,
-		Username: "oi4",
-		Password: "oi4",
-	}); err != nil {
+	if err := oi4Application.Start(*configuration); err != nil {
 		panic(err)
 	}
 
@@ -153,4 +135,66 @@ func main() {
 	oi4Application.Stop()
 
 	os.Exit(0)
+}
+
+func getStorage() (*container.Storage, *v1.MasterAssetModel, error) {
+	baseDir := flag.String("base", "", "base dir of the configuration")
+	runtime := flag.String("runtime", "container", "runtime environment (program, container)")
+	flag.Parse()
+
+	fmt.Printf("Using app as: %s with base dir: %s\n", *runtime, *baseDir)
+
+	isContainer := *runtime == "container"
+
+	var config container.StorageConfiguration
+	var mam *v1.MasterAssetModel
+	var err error
+	if isContainer {
+		config = *container.DefaultStorageConfiguration()
+		mam, err = getMasterAssetModel(container.DefaultOi4Folder)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		mam, err = getMasterAssetModel(filepath.Join(*baseDir, container.DefaultOi4Folder))
+		if err != nil {
+			return nil, nil, err
+		}
+		config = container.StorageConfiguration{
+			ContainerName:                        mam.SerialNumber,
+			MessageBusStoragePath:                filepath.Join(*baseDir, container.DefaultMessageBusStorageSubFolder),
+			Oi4CertificateStoragePath:            filepath.Join(*baseDir, container.DefaultOi4CertificateStorageSubFolder),
+			SecretStoragePath:                    filepath.Join(*baseDir, container.DefaultSecretsFolder),
+			ApplicationSpecificConfigurationPath: filepath.Join(*baseDir, container.DefaultApplicationSpecificConfigurationFolder),
+			ApplicationSpecificDataPath:          filepath.Join(*baseDir, container.DefaultApplicationSpecificDataFolder),
+		}
+	}
+
+	storage, err := container.NewContainerStorage(config)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return storage, mam, nil
+}
+
+func getMasterAssetModel(oi4Dir string) (*v1.MasterAssetModel, error) {
+	mamFile := filepath.Join(oi4Dir, "config", "mam.json")
+	fileBytes, err := os.ReadFile(mamFile)
+	if err != nil {
+		return nil, &v1.Error{
+			Message: "Failed to read master asset model file from: " + mamFile,
+			Err:     err,
+		}
+	}
+	var mam v1.MasterAssetModel
+	err = json.Unmarshal(fileBytes, &mam)
+	if err != nil {
+		return nil, &v1.Error{
+			Message: "Failed to unmarshal master asset model file from: " + mamFile,
+			Err:     err,
+		}
+	}
+
+	return &mam, nil
 }

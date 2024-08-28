@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-const validPath = "testdata/valid"
+const validPath = "docker_configs/valid"
 
 func TestNewMessageBusStorage_ValidPath(t *testing.T) {
 	storage, err := NewMessageBusStorage(filepath.Join(validPath, DefaultMessageBusStorageSubFolder))
@@ -24,14 +24,14 @@ func TestNewMessageBusStorage_InvalidPath(t *testing.T) {
 }
 
 func TestNewMessageBusStorage_InvalidCa(t *testing.T) {
-	storage, err := NewMessageBusStorage(filepath.Join("testdata", "mqtt_invalid_ca"))
+	storage, err := NewMessageBusStorage(filepath.Join("docker_configs", "mqtt_invalid_ca"))
 	require.Error(t, err)
 	require.Nil(t, storage)
 	assert.Equal(t, "invalid CA certificates: invalid root CA certificate: invalid PEM file", err.Error())
 }
 
 func TestNewMessageBusStorage_InvalidBrokerConfiguration(t *testing.T) {
-	storage, err := NewMessageBusStorage(filepath.Join("testdata", "mqtt_invalid_broker_configuration"))
+	storage, err := NewMessageBusStorage(filepath.Join("docker_configs", "mqtt_invalid_broker_configuration"))
 	require.Error(t, err)
 	require.Nil(t, storage)
 	assert.Equal(t, "invalid broker configuration: invalid json format: unexpected end of JSON input", err.Error())
@@ -57,7 +57,7 @@ func TestNewOi4CertificateStorage_InvalidClientPem(t *testing.T) {
 }
 
 func TestNewOi4CertificateStorage_InvalidCA(t *testing.T) {
-	storage, err := NewOi4CertificateStorage(filepath.Join("testdata", "certificate_invalid_ca"), "F12AB35")
+	storage, err := NewOi4CertificateStorage(filepath.Join("docker_configs", "certificate_invalid_ca"), "F12AB35")
 	require.Error(t, err)
 	require.Nil(t, storage)
 	assert.Equal(t, "invalid CA certificates: invalid root CA certificate: invalid PEM file", err.Error())
@@ -86,7 +86,7 @@ func TestNewSecretStorage_InvalidPath(t *testing.T) {
 }
 
 func TestNewSecretStorage_InvalidCredentials(t *testing.T) {
-	storage, err := NewSecretStorage(filepath.Join("testdata", "empty"))
+	storage, err := NewSecretStorage(filepath.Join("docker_configs", "empty"))
 	require.NoError(t, err)
 	require.NotNil(t, storage)
 	require.Nil(t, storage.MqttCredentials)
@@ -99,14 +99,14 @@ func TestNewApplicationSpecificStorages_ValidPaths(t *testing.T) {
 }
 
 func TestNewApplicationSpecificStorages_InvalidConfigPath(t *testing.T) {
-	storage, err := NewApplicationSpecificStorages("invalid", filepath.Join("testdata", "empty"))
+	storage, err := NewApplicationSpecificStorages("invalid", filepath.Join("docker_configs", "empty"))
 	require.Error(t, err)
 	require.Nil(t, storage)
 	assert.Equal(t, "invalid configuration path: no such file or directory", err.Error())
 }
 
 func TestNewApplicationSpecificStorages_InvalidDataPath(t *testing.T) {
-	storage, err := NewApplicationSpecificStorages(filepath.Join("testdata", "empty"), "invalid")
+	storage, err := NewApplicationSpecificStorages(filepath.Join("docker_configs", "empty"), "invalid")
 	require.Error(t, err)
 	require.Nil(t, storage)
 	assert.Equal(t, "invalid data path: no such file or directory", err.Error())
@@ -130,14 +130,14 @@ func TestReadCredentials_InvalidFile(t *testing.T) {
 }
 
 func TestReadCredentials_InvalidBase64(t *testing.T) {
-	credentials, err := readCredentials(filepath.Join("testdata", "credentials", "invalid_base64"))
+	credentials, err := readCredentials(filepath.Join("docker_configs", "credentials", "invalid_base64"))
 	require.Error(t, err)
 	require.Nil(t, credentials)
 	assert.Equal(t, "invalid credential format: illegal base64 data at input byte 12", err.Error())
 }
 
 func TestReadCredentials_InvalidNoColon(t *testing.T) {
-	credentials, err := readCredentials(filepath.Join("testdata", "credentials", "no_colon"))
+	credentials, err := readCredentials(filepath.Join("docker_configs", "credentials", "no_colon"))
 	require.Error(t, err)
 	require.Nil(t, credentials)
 	assert.Equal(t, "invalid credentials: no colon found", err.Error())
@@ -155,7 +155,7 @@ func TestReadPassphrase_InvalidFile(t *testing.T) {
 }
 
 func TestReadPassphrase_InvalidBase64(t *testing.T) {
-	passphrase := readPassphrase(filepath.Join("testdata", "credentials", "invalid_base64"))
+	passphrase := readPassphrase(filepath.Join("docker_configs", "credentials", "invalid_base64"))
 	require.Nil(t, passphrase)
 }
 
@@ -166,18 +166,18 @@ func TestParseBrokerConfiguration_InvalidFile(t *testing.T) {
 }
 
 func TestReadPrivateKeyFile_Valid(t *testing.T) {
-	privateKey, err := readPrivateKeyFile(filepath.Join("testdata", "private_key", "valid.pem"))
+	privateKey, err := readPrivateKeyFile(filepath.Join("docker_configs", "private_key", "valid.pem"))
 	require.NoError(t, err)
 	require.NotNil(t, privateKey)
 }
 
 func TestReadPrivateKeyFile_InvalidPemType(t *testing.T) {
-	privateKey, err := readPrivateKeyFile(filepath.Join("testdata", "private_key", "invalid_pem_type.pem"))
+	privateKey, err := readPrivateKeyFile(filepath.Join("docker_configs", "private_key", "invalid_pem_type.pem"))
 	require.Error(t, err)
 	require.Nil(t, privateKey)
 	assert.Equal(t, "invalid private key: invalid type CERTIFICATE", err.Error())
 
-	privateKey, err = readPrivateKeyFile(filepath.Join("testdata", "private_key", "invalid_pem_file.pem"))
+	privateKey, err = readPrivateKeyFile(filepath.Join("docker_configs", "private_key", "invalid_pem_file.pem"))
 	require.Error(t, err)
 	require.Nil(t, privateKey)
 	assert.Equal(t, "invalid private key: not in PEM format", err.Error())
@@ -192,7 +192,7 @@ func TestGetCAs_InvalidPath(t *testing.T) {
 }
 
 func TestGetCAs_InvalidPem(t *testing.T) {
-	root, cas, err := getCAs(filepath.Join("testdata", "ca_invalid_pem"), "")
+	root, cas, err := getCAs(filepath.Join("docker_configs", "ca_invalid_pem"), "")
 	require.Error(t, err)
 	require.Nil(t, root)
 	require.Nil(t, cas)
@@ -200,10 +200,124 @@ func TestGetCAs_InvalidPem(t *testing.T) {
 }
 
 func TestReadPem_InvalidFile(t *testing.T) {
-	pemBytes, err := os.ReadFile(filepath.Join("testdata", "private_key", "valid.pem"))
+	pemBytes, err := os.ReadFile(filepath.Join("docker_configs", "private_key", "valid.pem"))
 	require.NoError(t, err)
 	pem, err := readPem(pemBytes)
 	require.Error(t, err)
 	require.Nil(t, pem)
 	assert.Equal(t, "failed to parse certificate", err.Error())
+}
+
+func TestGetContainerName(t *testing.T) {
+	hostName, err := os.Hostname()
+	require.NoError(t, err)
+	assert.Equal(t, hostName, GetContainerName())
+}
+
+func TestNewContainerStorage_valid(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join(validPath, DefaultMessageBusStorageSubFolder),
+		Oi4CertificateStoragePath:            filepath.Join(validPath, DefaultOi4CertificateStorageSubFolder),
+		SecretStoragePath:                    filepath.Join(validPath, DefaultSecretsFolder),
+		ApplicationSpecificConfigurationPath: validPath,
+		ApplicationSpecificDataPath:          validPath,
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.NoError(t, err)
+	require.NotNil(t, storage)
+}
+
+func TestNewContainerStorage_invalidMessageBus(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join("invalid", "path"),
+		Oi4CertificateStoragePath:            "",
+		SecretStoragePath:                    "",
+		ApplicationSpecificConfigurationPath: "",
+		ApplicationSpecificDataPath:          "",
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.Error(t, err)
+	require.Nil(t, storage)
+	assert.Equal(t, "invalid message bus storage location: stat invalid/path: no such file or directory", err.Error())
+}
+
+func TestNewContainerStorage_invalidCertificateStorage(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join(validPath, DefaultMessageBusStorageSubFolder),
+		Oi4CertificateStoragePath:            filepath.Join("invalid", "path"),
+		SecretStoragePath:                    "",
+		ApplicationSpecificConfigurationPath: "",
+		ApplicationSpecificDataPath:          "",
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.Error(t, err)
+	require.Nil(t, storage)
+	assert.Equal(t, "invalid OI4 certificate storage location: stat invalid/path: no such file or directory", err.Error())
+}
+
+func TestNewContainerStorage_invalidSecretsStorage(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join(validPath, DefaultMessageBusStorageSubFolder),
+		Oi4CertificateStoragePath:            filepath.Join(validPath, DefaultOi4CertificateStorageSubFolder),
+		SecretStoragePath:                    filepath.Join("invalid", "path"),
+		ApplicationSpecificConfigurationPath: "",
+		ApplicationSpecificDataPath:          "",
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.Error(t, err)
+	require.Nil(t, storage)
+	assert.Equal(t, "invalid secret storage location: stat invalid/path: no such file or directory", err.Error())
+}
+
+func TestNewContainerStorage_invalidConfigurationStorage(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join(validPath, DefaultMessageBusStorageSubFolder),
+		Oi4CertificateStoragePath:            filepath.Join(validPath, DefaultOi4CertificateStorageSubFolder),
+		SecretStoragePath:                    filepath.Join(validPath, DefaultSecretsFolder),
+		ApplicationSpecificConfigurationPath: "invalid",
+		ApplicationSpecificDataPath:          "",
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.Error(t, err)
+	require.Nil(t, storage)
+	assert.Equal(t, "invalid configuration path: no such file or directory", err.Error())
+}
+
+func TestNewContainerStorage_invalidDataStorage(t *testing.T) {
+	configuration := StorageConfiguration{
+		ContainerName:                        "F12AB35",
+		MessageBusStoragePath:                filepath.Join(validPath, DefaultMessageBusStorageSubFolder),
+		Oi4CertificateStoragePath:            filepath.Join(validPath, DefaultOi4CertificateStorageSubFolder),
+		SecretStoragePath:                    filepath.Join(validPath, DefaultSecretsFolder),
+		ApplicationSpecificConfigurationPath: validPath,
+		ApplicationSpecificDataPath:          "invalid",
+	}
+
+	storage, err := NewContainerStorage(configuration)
+	require.Error(t, err)
+	require.Nil(t, storage)
+	assert.Equal(t, "invalid data path: no such file or directory", err.Error())
+}
+
+func TestDefaultStoragePaths(t *testing.T) {
+	storage := DefaultStorageConfiguration()
+	hostName, err := os.Hostname()
+	require.NoError(t, err)
+	require.NotNil(t, storage)
+	assert.Equal(t, hostName, storage.ContainerName)
+	assert.Equal(t, DefaultMessageBusStorageSubFolder, storage.MessageBusStoragePath)
+	assert.Equal(t, DefaultOi4CertificateStorageSubFolder, storage.Oi4CertificateStoragePath)
+	assert.Equal(t, DefaultSecretsFolder, storage.SecretStoragePath)
+	assert.Equal(t, DefaultApplicationSpecificConfigurationFolder, storage.ApplicationSpecificConfigurationPath)
+	assert.Equal(t, DefaultApplicationSpecificDataFolder, storage.ApplicationSpecificDataPath)
 }

@@ -1,0 +1,12 @@
+/.idea/
+/.mosquitto/
+
+/.gitignore
+
+/docker_configs/
+/Dockerfile
+/.dockerignore
+
+/TODO.md
+
+/gomod.sh
