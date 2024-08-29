@@ -1,3 +1,4 @@
+// Package container provides the storage for the container according to the OI4 OEC Guideline.
 package container
 
 import (
