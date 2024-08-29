@@ -1,16 +1,13 @@
+// Package dnp provides encoding and decoding functions for DNP strings.
+// The DNP is basically a URL encoding, replacing the '%' with an ',',
+// so that the resulting string is  DIN SPEC 91406 compliant
+//
 // The basic encoding and decoding is taken from the net/url package.
 //
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
-// Package utils Package url parses URLs and implements query escaping.
 package dnp
-
-// See RFC 3986. This package generally follows RFC 3986, except where
-// it deviates for compatibility reasons. When sending changes, first
-// search old issues for history on decisions. Unit tests should also
-// contain references to issue numbers with details.
 
 import (
 	"strconv"
@@ -18,13 +15,6 @@ import (
 )
 
 const escapeChar = ','
-
-// Error reports an error and the operation and URL that caused it.
-type Error struct {
-	Op  string
-	URL string
-	Err error
-}
 
 const upperHex = "0123456789ABCDEF"
 
@@ -59,10 +49,7 @@ func (e EscapeError) Error() string {
 }
 
 // Return true if the specified character should be escaped when
-// appearing in a URL string, according to RFC 3986.
-//
-// Please be informed that for now shouldEscape does not check all
-// reserved characters correctly. See golang.org/issue/5684.
+// appearing in a DNP string, according to DIN SPEC 91406.
 func shouldEscape(c byte) bool {
 	// §2.3 Unreserved characters (alphanum)
 	if 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' {
@@ -81,8 +68,7 @@ func shouldEscape(c byte) bool {
 	return true
 }
 
-// unescape unescapes a string; the mode specifies
-// which section of the URL string is being unescaped.
+// unescape unescapes a DNP string
 func unescape(s string) (string, error) {
 	// Count ',', check that they're well-formed.
 	n := 0
@@ -161,10 +147,16 @@ func escape(s string) string {
 	return string(t)
 }
 
+// Encode escapes the string according to the DNP encoding.
+// The DNP is basically a URL encoding, replacing the '%' with an ',',
+// so that the resulting string is  DIN SPEC 91406 compliant
 func Encode(input string) string {
 	return escape(input)
 }
 
+// Decode unescapes a DNP encoded string.
+// The DNP is basically a URL encoding, replacing the '%' with an ',',
+// so that the resulting string is  DIN SPEC 91406 compliant
 func Decode(input string) (string, error) {
 	return unescape(input)
 }
