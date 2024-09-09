@@ -27,8 +27,7 @@ jobs:
           docker buildx inspect --bootstrap
       - name: Docker Build & Push
         run:  |
-          make docker_build
           echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-          npm run docker:build
+          make docker_build_push
         env:
           GO111MODULE: on
