@@ -1,4 +1,13 @@
 # Open Industry 4.0 Alliance - Open Edge Computing Service - Go
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/OI4/oi4-oec-service-go/api.svg)](https://pkg.go.dev/github.com/OI4/oi4-oec-service-go/api) oi4-oec-service-go/api reference
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/OI4/oi4-oec-service-go/container.svg)](https://pkg.go.dev/github.com/OI4/oi4-oec-service-go/container) oi4-oec-service-go/container reference
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/OI4/oi4-oec-service-go/dnp.svg)](https://pkg.go.dev/github.com/OI4/oi4-oec-service-go/dnp) oi4-oec-service-go/dnp reference
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/OI4/oi4-oec-service-go/dnp.svg)](https://pkg.go.dev/github.com/OI4/oi4-oec-service-go/dnp) oi4-oec-service-go/service reference
+
 The oi4-service repository contains all artifacts to build a service compliant to [OEC Development Guideline v1.1.0](docs/OI4_OEC_Development_Guideline_V1.1.0.pdf).
 It also covers a base service that will help you build your own compliant OI4 OEC service by providing most of the OI4 state machine.
 
