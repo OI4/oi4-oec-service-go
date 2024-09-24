@@ -16,8 +16,8 @@ type Oi4Source interface {
 	GetHealth() Health
 	UpdateHealth(Health)
 
-	GetData() *any
-	UpdateData(data *any, dataTag string)
+	GetData() any
+	UpdateData(data any, dataTag string)
 
 	SetOi4Application(Oi4Application)
 }

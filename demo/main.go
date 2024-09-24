@@ -47,10 +47,18 @@ func main() {
 
 	}()
 
-	oi4Application.RegisterPublication(dataApplicationPublication)
+	err = oi4Application.RegisterPublication(dataApplicationPublication)
+	if err != nil {
+		fmt.Println("Failed to register publication:", err)
+		panic(err)
+	}
 
 	metaDataApplicationPublication := application.CreatePublication[any](v1.ResourceMetadata, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
-	oi4Application.RegisterPublication(metaDataApplicationPublication) //.SetData().SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5))
+	err = oi4Application.RegisterPublication(metaDataApplicationPublication)
+	if err != nil {
+		fmt.Println("Failed to register publication:", err)
+		panic(err)
+	}
 
 	assetSource := oi4.NewSourceImpl(v1.MasterAssetModel{
 		Manufacturer: v1.LocalizedText{
@@ -90,10 +98,18 @@ func main() {
 			counter++
 		}
 	}()
-	oi4Asset.RegisterPublication(dataAssetPublication)
+	err = oi4Asset.RegisterPublication(dataAssetPublication)
+	if err != nil {
+		fmt.Println("Failed to register publication:", err)
+		panic(err)
+	}
 
 	metaDataAssetPublication := application.CreatePublication[any](v1.ResourceMetadata, false).SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5)
-	oi4Asset.RegisterPublication(metaDataAssetPublication) //.SetData().SetPublicationMode(v1.PublicationMode_APPLICATION_SOURCE_5))
+	err = oi4Asset.RegisterPublication(metaDataAssetPublication)
+	if err != nil {
+		fmt.Println("Failed to register publication:", err)
+		panic(err)
+	}
 
 	oi4Application.RegisterAsset(oi4Asset)
 
