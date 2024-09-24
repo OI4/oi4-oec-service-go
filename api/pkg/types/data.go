@@ -62,7 +62,7 @@ func (data *Oi4Data) GetData() any {
 	return data.values
 }
 
-func (data *Oi4Data) AddSecondaryData(tag string, value *any) error {
+func (data *Oi4Data) AddSecondaryData(tag string, value any) error {
 	re := regexp.MustCompile(svRegex)
 	if !re.MatchString(tag) {
 		return &Error{Message: "Tag must be in format Sv[0-9]+"}
