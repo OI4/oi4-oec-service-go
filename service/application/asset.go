@@ -1,6 +1,7 @@
 package application
 
 import (
+	pub "github.com/OI4/oi4-oec-service-go/service/application/publication"
 	"sync"
 	"time"
 
@@ -11,68 +12,95 @@ type Oi4Asset struct {
 	parent *Oi4ApplicationImpl
 	mam    *api.MasterAssetModel
 
-	publicationsList map[api.ResourceType]Publication
+	publicationsList map[api.ResourceType]pub.Publication
 	publicationMutex sync.RWMutex
 
 	source api.Oi4Source
 }
 
-func CreateNewAsset(source api.Oi4Source) *Oi4Asset {
+func CreateNewAsset(source api.Oi4Source, app *Oi4ApplicationImpl) *Oi4Asset {
 	mam := source.GetMasterAssetModel()
 	asset := &Oi4Asset{
-		parent:           nil,
+		parent:           app,
 		mam:              &mam,
-		publicationsList: make(map[api.ResourceType]Publication),
+		publicationsList: make(map[api.ResourceType]pub.Publication),
 		publicationMutex: sync.RWMutex{},
 		source:           source,
 	}
 
 	assetSource := NewSourceImpl(mam)
-	oi4Source := api.Oi4Source(assetSource)
 
-	asset.RegisterPublication(CreatePublication(api.ResourceHealth, &oi4Source). //SetDataFunc(func() *api.Health {
-		//	health := asset.source.GetHealth()
-		//	return &health
-		//}).
-		SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5).SetPublicationInterval(60 * time.Second))
-	asset.RegisterPublication(CreatePublication(api.ResourceMam, &oi4Source). //SetData(&mam).
-											SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5))
+	// register built-in publications
+	err := asset.RegisterPublication(pub.NewIntervalBuilder(app, 60*time.Second). //
+											Oi4Source(assetSource).                                    //
+											Resource(api.ResourceHealth).                              //
+											PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+											Build())
+	//SetDataFunc(func() *api.Health {
+	//	health := asset.source.GetHealth()
+	//	return &health
+	//}).
 
-	asset.RegisterPublication(CreatePublication(api.ResourceReferenceDesignation, &oi4Source). //SetDataFunc(func() *api.ReferenceDesignation {
-		// Dummy implementation yet
-		//	return &api.ReferenceDesignation{}
-		//}).
-		SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5))
+	if err != nil {
+		return nil
+	}
 
-	asset.RegisterPublication(CreatePublication(api.ResourceProfile, &oi4Source). //SetDataFunc(func() *api.Profile {
-		//	resources := make([]api.ResourceType, 0)
-		//	for key := range asset.publicationsList {
-		//		resources = append(resources, key)
-		//	}
-		//	profile := api.Profile{
-		//		Resources: resources,
-		//	}
-		//	return &profile
-		//}).
-		SetPublicationMode(api.PublicationMode_APPLICATION_2))
+	err = asset.RegisterPublication(pub.NewBuilder(app). //
+								Oi4Source(assetSource).                                    //
+								Resource(api.ResourceMam).                                 //
+								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+								PublishOnRegistration(true).                               //
+								Build())
+
+	if err != nil {
+		return nil
+	}
+
+	err = asset.RegisterPublication(pub.NewBuilder(app). //
+								Oi4Source(assetSource).                                    //
+								Resource(api.ResourceReferenceDesignation).                //
+								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+								Build())
+	//SetDataFunc(func() *api.ReferenceDesignation {
+	// Dummy implementation yet
+	//	return &api.ReferenceDesignation{}
+	//}).
+
+	if err != nil {
+		return nil
+	}
+
+	err = asset.RegisterPublication(pub.NewBuilder(app). //
+								Oi4Source(assetSource).                             //
+								Resource(api.ResourceProfile).                      //
+								PublicationMode(api.PublicationMode_APPLICATION_2). //
+								Build())
+	//SetDataFunc(func() *api.Profile {
+	//	resources := make([]api.ResourceType, 0)
+	//	for key := range asset.publicationsList {
+	//		resources = append(resources, key)
+	//	}
+	//	profile := api.Profile{
+	//		Resources: resources,
+	//	}
+	//	return &profile
+	//}).
+
+	if err != nil {
+		return nil
+	}
 
 	return asset
 }
 
-func (asset *Oi4Asset) RegisterPublication(publication Publication) error {
+func (asset *Oi4Asset) RegisterPublication(publication pub.Publication) error {
 	asset.publicationMutex.Lock()
 	defer asset.publicationMutex.Unlock()
 
-	if publication.getParent() != nil {
-		return ErrPublicationAlreadyRegisteredOnAnotherApplication
-	}
-
-	asset.publicationsList[publication.getResource()] = publication
+	asset.publicationsList[publication.GetResource()] = publication
 
 	if asset.parent != nil {
-		publication.setParent(asset.parent)
-		publication.setSource(asset.mam.ToOi4Identifier())
-		publication.start()
+		publication.Start()
 	}
 
 	return nil
@@ -90,14 +118,11 @@ func (asset *Oi4Asset) setParent(parent *Oi4ApplicationImpl) error {
 
 	asset.parent = parent
 	asset.source.SetOi4Application(parent)
-	for _, pub := range asset.publicationsList {
+	for _, publication := range asset.publicationsList {
 		if parent != nil {
-			pub.setParent(asset.parent)
-			pub.setSource(asset.mam.ToOi4Identifier())
-			pub.start()
+			publication.Start()
 		} else {
-			pub.setSource(nil)
-			pub.stop()
+			publication.Stop()
 		}
 	}
 	return nil

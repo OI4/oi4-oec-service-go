@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"net/url"
 	"os"
@@ -68,18 +69,18 @@ type Storage struct {
 	ApplicationSpecificStorages *ApplicationSpecificStorages
 }
 
-func NewContainerStorage(configuration StorageConfiguration) (*Storage, error) {
-	messageBusStorage, err := NewMessageBusStorage(configuration.MessageBusStoragePath)
+func NewContainerStorage(configuration StorageConfiguration, logger *zap.SugaredLogger) (*Storage, error) {
+	messageBusStorage, err := NewMessageBusStorage(configuration.MessageBusStoragePath, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	oi4CertificateStorage, err := NewOi4CertificateStorage(configuration.Oi4CertificateStoragePath, configuration.ContainerName)
+	oi4CertificateStorage, err := NewOi4CertificateStorage(configuration.Oi4CertificateStoragePath, configuration.ContainerName, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	secretStorage, err := NewSecretStorage(configuration.SecretStoragePath)
+	secretStorage, err := NewSecretStorage(configuration.SecretStoragePath, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ type BrokerConfiguration struct {
 	MaxPacketSize int32
 }
 
-func NewMessageBusStorage(folderPath string) (*MessageBusStorage, error) {
+func NewMessageBusStorage(folderPath string, logger *zap.SugaredLogger) (*MessageBusStorage, error) {
 	storage, err := newStorage(folderPath)
 	if err != nil {
 		return nil, &Error{
@@ -144,14 +145,14 @@ func NewMessageBusStorage(folderPath string) (*MessageBusStorage, error) {
 		}
 	}
 	brokerPem := filepath.Join(*storage.FolderPath, "broker.pem")
-	brokerCertificate, err := readPemFile(brokerPem)
+	brokerCertificate, err := readPemFile(brokerPem, logger)
 	if err != nil {
 		// The guideline defines the broker certificate as mandatory.
 		// Nevertheless, the broker certificate is not strictly required for connecting to the broker.
-		fmt.Println("invalid broker certificate. Certificate is going to be skipped", err)
+		logger.Error("invalid broker certificate. Certificate is going to be skipped", err)
 	}
 
-	rootCertificate, subCaCertificates, err := getCAs(folderPath, "broker_")
+	rootCertificate, subCaCertificates, err := getCAs(folderPath, "broker_", logger)
 	// CA and Sub-CA certificates are optional. But if present, they must be valid.
 	if err != nil {
 		return nil, &Error{
@@ -160,7 +161,7 @@ func NewMessageBusStorage(folderPath string) (*MessageBusStorage, error) {
 		}
 	}
 
-	configuration, err := parseBrokerConfiguration(filepath.Join(folderPath, "broker.json"))
+	configuration, err := parseBrokerConfiguration(filepath.Join(folderPath, "broker.json"), logger)
 	if err != nil {
 		return nil, &Error{
 			Message: "invalid broker configuration",
@@ -177,8 +178,8 @@ func NewMessageBusStorage(folderPath string) (*MessageBusStorage, error) {
 	}, nil
 }
 
-func parseBrokerConfiguration(configPath string) (*BrokerConfiguration, error) {
-	configBytes, err := readFile(configPath)
+func parseBrokerConfiguration(configPath string, logger *zap.SugaredLogger) (*BrokerConfiguration, error) {
+	configBytes, err := readFile(configPath, logger)
 	if err != nil {
 		return nil, errors.New("failed to read broker configuration")
 	}
@@ -208,7 +209,7 @@ type Oi4CertificateStorage struct {
 	SubCaCertificates map[string]*x509.Certificate
 }
 
-func NewOi4CertificateStorage(folderPath string, containerName string) (*Oi4CertificateStorage, error) {
+func NewOi4CertificateStorage(folderPath string, containerName string, logger *zap.SugaredLogger) (*Oi4CertificateStorage, error) {
 	storage, err := newStorage(folderPath)
 	if err != nil {
 		return nil, &Error{
@@ -217,7 +218,7 @@ func NewOi4CertificateStorage(folderPath string, containerName string) (*Oi4Cert
 		}
 	}
 	clientPem := filepath.Join(*storage.FolderPath, containerName+".pem")
-	clientCertificate, err := readPemFile(clientPem)
+	clientCertificate, err := readPemFile(clientPem, logger)
 	if err != nil {
 		return nil, &Error{
 			Message: "invalid client certificate",
@@ -225,7 +226,7 @@ func NewOi4CertificateStorage(folderPath string, containerName string) (*Oi4Cert
 		}
 	}
 
-	rootCertificate, subCaCertificates, err := getCAs(folderPath, "")
+	rootCertificate, subCaCertificates, err := getCAs(folderPath, "", logger)
 	if err != nil {
 		return nil, &Error{
 			Message: "invalid CA certificates",
@@ -255,7 +256,7 @@ type SecretStorage struct {
 	MqttPassphrase *string
 }
 
-func NewSecretStorage(folderPath string) (*SecretStorage, error) {
+func NewSecretStorage(folderPath string, logger *zap.SugaredLogger) (*SecretStorage, error) {
 	storage, err := newStorage(folderPath)
 	if err != nil {
 		return nil, &Error{
@@ -264,19 +265,19 @@ func NewSecretStorage(folderPath string) (*SecretStorage, error) {
 		}
 	}
 
-	credentials, err := readCredentials(filepath.Join(folderPath, "mqtt_credentials"))
+	credentials, err := readCredentials(filepath.Join(folderPath, "mqtt_credentials"), logger)
 	if err != nil {
 		fmt.Println("no or invalid mqtt credentials. Credentials are going to be skipped")
 		// TODO log error in trace level
 	}
 
-	privateKey, err := readPrivateKeyFile(filepath.Join(folderPath, "mqtt_private_key.pem"))
+	privateKey, err := readPrivateKeyFile(filepath.Join(folderPath, "mqtt_private_key.pem"), logger)
 	if err != nil {
-		fmt.Println("not or invalid mqtt private key. Private key is going to be skipped")
+		fmt.Println("no or invalid mqtt private key. Private key is going to be skipped")
 		// TODO log error in trace level
 	}
 
-	passphrase := readPassphrase(filepath.Join(folderPath, "mqtt_passphrase"))
+	passphrase := readPassphrase(filepath.Join(folderPath, "mqtt_passphrase"), logger)
 
 	return &SecretStorage{
 		BaseStorage:     *storage,
@@ -286,8 +287,8 @@ func NewSecretStorage(folderPath string) (*SecretStorage, error) {
 	}, nil
 }
 
-func readCredentials(credentialFile string) (*url.Userinfo, error) {
-	credentialBytes, err := readFile(credentialFile)
+func readCredentials(credentialFile string, logger *zap.SugaredLogger) (*url.Userinfo, error) {
+	credentialBytes, err := readFile(credentialFile, logger)
 	if err != nil {
 		return nil, &Error{
 			Message: "failed to read credentials",
@@ -311,8 +312,8 @@ func readCredentials(credentialFile string) (*url.Userinfo, error) {
 	return url.UserPassword(credentials[0], credentials[1]), nil
 }
 
-func readPassphrase(passphraseFile string) *string {
-	passphraseBytes, err := readFile(passphraseFile)
+func readPassphrase(passphraseFile string, logger *zap.SugaredLogger) *string {
+	passphraseBytes, err := readFile(passphraseFile, logger)
 	if err != nil {
 		return nil
 	}
@@ -357,8 +358,8 @@ func NewApplicationSpecificStorages(configurationPath string, dataPath string) (
 // ***                                     Helper functions                                      ***
 // ****************************************************************
 
-func readPrivateKeyFile(pemFile string) (*pem.Block, error) {
-	pemBytes, err := readFile(pemFile)
+func readPrivateKeyFile(pemFile string, logger *zap.SugaredLogger) (*pem.Block, error) {
+	pemBytes, err := readFile(pemFile, logger)
 	if err != nil {
 		return nil, &Error{
 			Message: "failed to read private key pem file",
@@ -379,7 +380,7 @@ func readPrivateKey(pemBytes []byte) (*pem.Block, error) {
 	return block, nil
 }
 
-func getCAs(folderPath string, caPrefix string) (*x509.Certificate, map[string]*x509.Certificate, error) {
+func getCAs(folderPath string, caPrefix string, logger *zap.SugaredLogger) (*x509.Certificate, map[string]*x509.Certificate, error) {
 	var rootCertificate *x509.Certificate
 	subCaCertificates := make(map[string]*x509.Certificate)
 
@@ -396,7 +397,7 @@ func getCAs(folderPath string, caPrefix string) (*x509.Certificate, map[string]*
 			continue
 		}
 		if file.Name() == caPrefix+"ca.pem" {
-			rootCertificate, err = readPemFile(filepath.Join(folderPath, file.Name()))
+			rootCertificate, err = readPemFile(filepath.Join(folderPath, file.Name()), logger)
 			if err != nil {
 				return nil, nil, &Error{
 					Message: "invalid root CA certificate",
@@ -405,7 +406,7 @@ func getCAs(folderPath string, caPrefix string) (*x509.Certificate, map[string]*
 			}
 		} else if strings.HasPrefix(filepath.Base(file.Name()), caPrefix+"ca.") {
 			var subCaCertificate *x509.Certificate
-			subCaCertificate, err = readPemFile(filepath.Join(folderPath, file.Name()))
+			subCaCertificate, err = readPemFile(filepath.Join(folderPath, file.Name()), logger)
 			if err != nil {
 				return nil, nil, &Error{
 					Message: fmt.Sprintf("invalid sub CA certificate %s", file.Name()),
@@ -419,8 +420,8 @@ func getCAs(folderPath string, caPrefix string) (*x509.Certificate, map[string]*
 	return rootCertificate, subCaCertificates, nil
 }
 
-func readPemFile(pemFile string) (*x509.Certificate, error) {
-	pemBytes, err := readFile(pemFile)
+func readPemFile(pemFile string, logger *zap.SugaredLogger) (*x509.Certificate, error) {
+	pemBytes, err := readFile(pemFile, logger)
 	if err != nil {
 		return nil, errors.New("failed to read pem file")
 	}
@@ -440,14 +441,13 @@ func readPem(pemBytes []byte) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-func readFile(filePath string) ([]byte, error) {
+func readFile(filePath string, logger *zap.SugaredLogger) ([]byte, error) {
 	// Open the file
 	file, err := os.Open(filePath)
 	defer func(file *os.File) {
 		err = file.Close()
 		if err != nil {
-			// TODO log as debug
-			fmt.Println("Error closing file: "+filePath, err)
+			logger.Debug("Error closing file: "+filePath, err)
 		}
 	}(file)
 	if err != nil {

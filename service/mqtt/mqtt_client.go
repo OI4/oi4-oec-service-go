@@ -16,7 +16,7 @@ var (
 	ErrNoAuthInformation = errors.New("no auth information provided, please provide either a mTLS certificate or username/password")
 )
 
-type MQTTClientOptions struct {
+type ClientOptions struct {
 	Host                          string
 	Tls                           bool
 	Port                          int
@@ -29,40 +29,40 @@ type MQTTClientOptions struct {
 	TlsVerify                     bool
 }
 
-type MQTTClient struct {
+type Client struct {
 	client mqtt.Client
 }
 
-func NewMQTTClient(options *MQTTClientOptions) (*MQTTClient, error) {
-	client_options := mqtt.NewClientOptions()
+func NewClient(options *ClientOptions) (*Client, error) {
+	clientOptions := mqtt.NewClientOptions()
 
-	client_options.SetClientID("client")
+	clientOptions.SetClientID("client")
 	if options.Tls {
-		client_options.AddBroker(fmt.Sprintf("ssl://%s:%d", options.Host, options.Port))
-		tls_config, err := tls.NewTLSConfig(options.Ca_certificate_pem, options.Client_certificate_pem, options.Client_private_key_pem, options.TlsVerify)
+		clientOptions.AddBroker(fmt.Sprintf("ssl://%s:%d", options.Host, options.Port))
+		tlsConfig, err := tls.NewTLSConfig(options.Ca_certificate_pem, options.Client_certificate_pem, options.Client_private_key_pem, options.TlsVerify)
 		if err != nil {
 			return nil, err
 		}
-		client_options.SetTLSConfig(tls_config)
+		clientOptions.SetTLSConfig(tlsConfig)
 	} else {
-		client_options.AddBroker(fmt.Sprintf("tcp://%s:%d", options.Host, options.Port))
+		clientOptions.AddBroker(fmt.Sprintf("tcp://%s:%d", options.Host, options.Port))
 	}
 
 	if options.Username != "" && options.Password != "" {
-		client_options.Username = options.Username
-		client_options.Password = options.Password
+		clientOptions.Username = options.Username
+		clientOptions.Password = options.Password
 	}
 
-	client := mqtt.NewClient(client_options)
+	client := mqtt.NewClient(clientOptions)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		return nil, token.Error()
 	} else {
-		return &MQTTClient{client: client}, nil
+		return &Client{client: client}, nil
 	}
 }
 
-func (client *MQTTClient) PublishResource(topic string, data interface{}) error {
+func (client *Client) PublishResource(topic string, data interface{}) error {
 	marshalledString, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (client *MQTTClient) PublishResource(topic string, data interface{}) error 
 	return nil
 }
 
-func (client *MQTTClient) RegisterGetHandler(serviceType api.ServiceType, appId api.Oi4Identifier, handler func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage)) {
+func (client *Client) RegisterGetHandler(serviceType api.ServiceType, appId api.Oi4Identifier, handler func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage)) {
 	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId.ToString())
 	client.client.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
 		networkMessage := api.NetworkMessage{}
@@ -94,6 +94,6 @@ func (client *MQTTClient) RegisterGetHandler(serviceType api.ServiceType, appId 
 	})
 }
 
-func (client *MQTTClient) Stop() {
+func (client *Client) Stop() {
 	client.client.Disconnect(1000)
 }

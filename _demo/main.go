@@ -4,9 +4,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/OI4/oi4-oec-service-go/service/application"
+	"github.com/OI4/oi4-oec-service-go/service/application/publication"
 	"github.com/OI4/oi4-oec-service-go/service/container"
+	"go.uber.org/zap"
+	"log"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -20,21 +22,34 @@ import (
 const baseDir = "./_demo/testdata/"
 
 func main() {
+	logger := getLogger()
 
-	storage, mam, err := getStorage()
+	storage, mam, err := getStorage(logger)
 	if err != nil {
 		wd, _ := os.Getwd()
-		fmt.Println("Working directory:", wd)
-		fmt.Println("Failed to retrieve storage configuration:", err)
+		logger.Info("Working directory:", wd)
+		logger.Info("Failed to retrieve storage configuration:", err)
 		panic(err)
 	}
 
 	applicationSource := application.NewApplicationSourceImpl(*mam)
 
-	oi4Application := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource)
+	oi4Application, err := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource, logger)
+	if err != nil {
+		logger.Fatal("Failed to create application:", err)
+		panic(err)
+	}
 
-	source := api.Oi4Source(applicationSource)
-	dataApplicationPublication := application.CreatePublication(api.ResourceData, &source).SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5)
+	if err = oi4Application.Start(*storage); err != nil {
+		logger.Fatal("Failed to start application:", err)
+		panic(err)
+	}
+
+	dataApplicationPublication := publication.NewBuilder(oi4Application). //
+										Oi4Source(applicationSource).                              //
+										Resource(api.ResourceData).                                //
+										PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+										Build()
 
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
@@ -47,7 +62,7 @@ func main() {
 				dErr := data.AddSecondaryData(key, &value)
 
 				if dErr != nil {
-					fmt.Println("Failed to add secondary data:", dErr)
+					logger.Error("Failed to add secondary data:", dErr)
 				}
 			}
 
@@ -61,14 +76,19 @@ func main() {
 
 	err = oi4Application.RegisterPublication(dataApplicationPublication)
 	if err != nil {
-		fmt.Println("Failed to register publication:", err)
+		logger.Fatal("Failed to register publication:", err)
 		panic(err)
 	}
 
-	metaDataApplicationPublication := application.CreatePublication(api.ResourceMetadata, &source).SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5)
+	metaDataApplicationPublication := publication.NewBuilder(oi4Application). //
+											Oi4Source(applicationSource).                              //
+											Resource(api.ResourceMetadata).                            //
+											PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+											Build()
+
 	err = oi4Application.RegisterPublication(metaDataApplicationPublication)
 	if err != nil {
-		fmt.Println("Failed to register publication:", err)
+		logger.Fatal("Failed to register publication:", err)
 		panic(err)
 	}
 
@@ -97,10 +117,14 @@ func main() {
 		},
 	})
 
-	oi4Asset := application.CreateNewAsset(assetSource)
+	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
 
-	source = api.Oi4Source(assetSource)
-	dataAssetPublication := application.CreatePublication(api.ResourceData, &source).SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5)
+	dataAssetPublication := publication.NewBuilder(oi4Application). //
+									Oi4Source(assetSource).                                    //
+									Resource(api.ResourceData).                                //
+									PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+									Build()
+
 	assetTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -113,22 +137,23 @@ func main() {
 	}()
 	err = oi4Asset.RegisterPublication(dataAssetPublication)
 	if err != nil {
-		fmt.Println("Failed to register publication:", err)
+		logger.Fatal("Failed to register publication:", err)
 		panic(err)
 	}
 
-	metaDataAssetPublication := application.CreatePublication(api.ResourceMetadata, &source).SetPublicationMode(api.PublicationMode_APPLICATION_SOURCE_5)
+	metaDataAssetPublication := publication.NewBuilder(oi4Application). //
+										Oi4Source(assetSource).                                    //
+										Resource(api.ResourceMetadata).                            //
+										PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+										Build()
+
 	err = oi4Asset.RegisterPublication(metaDataAssetPublication)
 	if err != nil {
-		fmt.Println("Failed to register publication:", err)
+		logger.Fatal("Failed to register publication:", err)
 		panic(err)
 	}
 
 	oi4Application.RegisterAsset(oi4Asset)
-
-	if err := oi4Application.Start(*storage); err != nil {
-		panic(err)
-	}
 
 	done := make(chan bool)
 	go func() {
@@ -166,7 +191,7 @@ func main() {
 	os.Exit(0)
 }
 
-func getStorage() (*container.Storage, *api.MasterAssetModel, error) {
+func getStorage(logger *zap.SugaredLogger) (*container.Storage, *api.MasterAssetModel, error) {
 	var config container.StorageConfiguration
 
 	mam, err := getMasterAssetModel(filepath.Join(baseDir, container.DefaultOi4Folder))
@@ -182,7 +207,7 @@ func getStorage() (*container.Storage, *api.MasterAssetModel, error) {
 		ApplicationSpecificDataPath:          filepath.Join(baseDir, container.DefaultApplicationSpecificDataFolder),
 	}
 
-	storage, err := container.NewContainerStorage(config)
+	storage, err := container.NewContainerStorage(config, logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -209,4 +234,16 @@ func getMasterAssetModel(oi4Dir string) (*api.MasterAssetModel, error) {
 	}
 
 	return &mam, nil
+}
+
+func getLogger() *zap.SugaredLogger {
+	logger, _ := zap.NewProduction()
+	defer func(logger *zap.Logger) {
+		err := logger.Sync()
+		if err != nil {
+			log.Print("Error flushing logger buffer: ", err)
+		}
+	}(logger) // flushes buffer, if any
+
+	return logger.Sugar()
 }
