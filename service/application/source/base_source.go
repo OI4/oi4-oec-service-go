@@ -2,6 +2,8 @@ package source
 
 import (
 	"github.com/OI4/oi4-oec-service-go/service/api"
+	"maps"
+	"slices"
 )
 
 type BaseSourceImpl struct {
@@ -101,8 +103,21 @@ func (source *BaseSourceImpl) GetLicense() api.License {
 	return source.license
 }
 
-func (source *BaseSourceImpl) GetLicenseText() map[string]api.LicenseText {
-	return source.licenseText
+func (source *BaseSourceImpl) GetLicenseText(filter api.Filter) []api.LicenseText {
+	if len(source.licenseText) == 0 {
+		return nil
+	}
+
+	if filter == nil {
+		return slices.Collect(maps.Values(source.licenseText))
+	}
+
+	licenseText, ok := source.licenseText[filter.String()]
+	if ok {
+		return []api.LicenseText{licenseText}
+	}
+
+	return nil
 }
 
 func (source *BaseSourceImpl) GetRtLicense() api.RtLicense {
@@ -138,7 +153,7 @@ func (source *BaseSourceImpl) GetReferenceDesignation() api.ReferenceDesignation
 	return source.referenceDesignation
 }
 
-func (source *BaseSourceImpl) Get(resourceType api.ResourceType) []any {
+func (source *BaseSourceImpl) Get(resourceType api.ResourceType, filter api.Filter) []any {
 	switch resourceType {
 	case api.ResourceProfile:
 		return []any{source.GetProfile()}
@@ -151,7 +166,7 @@ func (source *BaseSourceImpl) Get(resourceType api.ResourceType) []any {
 	case api.ResourceLicense:
 		return []any{source.GetLicense()}
 	case api.ResourceLicenseText:
-		return []any{source.GetLicenseText()}
+		return toAnySlice(source.GetLicenseText(filter))
 	case api.ResourceRtLicense:
 		return []any{source.GetRtLicense()}
 	case api.ResourcePublicationList:

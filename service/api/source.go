@@ -31,7 +31,7 @@ type BaseSource interface {
 
 	GetLicense() License
 
-	GetLicenseText() map[string]LicenseText
+	GetLicenseText(filter Filter) []LicenseText
 
 	GetRtLicense() RtLicense
 
@@ -41,7 +41,7 @@ type BaseSource interface {
 
 	GetReferenceDesignation() ReferenceDesignation
 
-	Get(ResourceType) []any
+	Get(resource ResourceType, filter Filter) []any
 
 	SetOi4Application(Oi4Application)
 

@@ -151,6 +151,8 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 		publication.Filter,
 	)
 
+	// TODO Check why filter is not in the topic
+
 	err := app.mqttClient.PublishResource(tp.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
 	if err != nil {
 		return

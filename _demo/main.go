@@ -49,7 +49,13 @@ func main() {
 			}
 		})
 
-	applicationSource := source.NewApplicationSourceImpl(*mam, option)
+	ltOption := source.WithLicenseText(map[string]api.LicenseText{
+		"MIT": {
+			"Lorem Ipsum",
+		},
+	})
+
+	applicationSource := source.NewApplicationSourceImpl(*mam, option, ltOption)
 
 	oi4Application, err := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource, logger)
 	if err != nil {

@@ -107,7 +107,12 @@ func (p *Impl) triggerPublication(correlationId *string) {
 	resource := p.GetResource()
 	source := p.GetOi4Source()
 
-	data := source.Get(resource)
+	data := source.Get(resource, p.filter)
+
+	if data == nil || len(data) == 0 {
+		return
+	}
+
 	content := make([]api.PublicationContent, len(data))
 	for i, single := range data {
 		if single == nil {
