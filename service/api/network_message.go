@@ -35,7 +35,7 @@ type NetworkMessage struct {
 	// Requirement: Conditional
 	// Shows the flow between the causal event and its consequences. The CorrelationId does not belong to OPC UA DataSetMessage according to Part 14-7.2.3.3.
 	// note The CorrelationId is filled in by the first consumer with the MessageId of the original message and then passed on from service to service until the message is no longer processed.
-	CorrelationId string `json:"CorrelationId,omitempty"`
+	CorrelationId *string `json:"CorrelationId,omitempty"`
 
 	// Value range: <array of DataSetMessage>
 	// Type: DataSetMessage object (see 9.2.3)

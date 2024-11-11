@@ -18,7 +18,7 @@ var dswId = dataSetWriterId{
 	mutex:     sync.RWMutex{},
 }
 
-func GetDataSetWriterId(resource api.ResourceType, source api.Oi4Identifier) uint16 {
+func GetDataSetWriterId(resource api.ResourceType, source *api.Oi4Identifier) uint16 {
 	key := getDataSetWriterIdKey(resource, source)
 	dswId.mutex.RLock()
 	defer dswId.mutex.RUnlock()
@@ -29,7 +29,10 @@ func GetDataSetWriterId(resource api.ResourceType, source api.Oi4Identifier) uin
 	return dswId.writerIds[key]
 }
 
-func getDataSetWriterIdKey(resource api.ResourceType, source api.Oi4Identifier) string {
+func getDataSetWriterIdKey(resource api.ResourceType, source *api.Oi4Identifier) string {
+	if source == nil {
+		return "NA"
+	}
 	sub := source.ToString()
 	if resource == api.ResourcePublicationList || resource == api.ResourceSubscriptionList {
 		sub = "NA"

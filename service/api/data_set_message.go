@@ -18,7 +18,7 @@ type DataSetMessage struct {
 	// A strictly sequentially increasing sequence number assigned to the DataSetMessage by the DataSetWriter.
 	//
 	// NOTE SequenceNumber might be of interest for resources with changing content, such as data, metadata, config, … More static like resources such as mam, health might not benefit from it.
-	SequenceNumber uint32 `json:"SequenceNumber,omitempty"`
+	SequenceNumber *uint32 `json:"SequenceNumber,omitempty"`
 
 	// Value range: <ConfigurationVersionDataType>
 	// Type: ConfigurationVersionDataType (9.2.5)
@@ -38,14 +38,14 @@ type DataSetMessage struct {
 	// The time of the data acquisition is indicated! Milliseconds might be of interest.
 	//
 	// NOTE Timestamp might be of interest for resources with changing content, such as health, data, metadata, config. More static like resources such as mam might not benefit from it.
-	Timestamp string `json:"Timestamp,omitempty"`
+	Timestamp *string `json:"Timestamp,omitempty"`
 
 	// Value range: <StatusCode>
 	// Type: UInt32
 	// Requirement: Optional
 	// Status code to be used as defined in OPC UA Part 4-7.34.2 and CSV-File.
 	// NOTE The Status is not mandatory and shall not be send, when the status is OK. When the Status is unequal to OK, the status codes, provided from OPC Foundation, are used.
-	Status StatusCode `json:"Status,omitempty"`
+	Status *StatusCode `json:"Status,omitempty"`
 
 	// Value range: <Filter>
 	// Type: String
@@ -56,7 +56,7 @@ type DataSetMessage struct {
 	// Note The Filter helps to combine the DataSet in the Payload with the related source. In OPC UA context this is done via DataSetWriterId, but this is not very intuitive and might need additional actions to get missing information via PublicationList  defined in 9.3.11.
 	//
 	// note Several resources such as MAM or Health and others do not make use of Filter in Message Bus topic and DataSetMessage.
-	Filter Filter `json:"Filter,omitempty"`
+	Filter *Filter `json:"Filter,omitempty"`
 
 	// Value range: <Oi4Identifier>
 	// Type: String

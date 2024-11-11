@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/OI4/oi4-oec-service-go/service/application"
 	"github.com/OI4/oi4-oec-service-go/service/application/publication"
+	"github.com/OI4/oi4-oec-service-go/service/application/source"
 	"github.com/OI4/oi4-oec-service-go/service/container"
 	"go.uber.org/zap"
 	"log"
@@ -32,7 +33,23 @@ func main() {
 		panic(err)
 	}
 
-	applicationSource := application.NewApplicationSourceImpl(*mam)
+	option := source.WithHealthFn(
+		func(_ api.BaseSource) api.Health {
+			maxH := 100
+			minH := 0
+			score := rand.IntN(maxH-minH) + minH
+			aScore := score + 1
+			if aScore > 100 {
+				aScore = 100
+			}
+
+			return api.Health{
+				Health:      api.Health_Normal,
+				HealthScore: byte(score),
+			}
+		})
+
+	applicationSource := source.NewApplicationSourceImpl(*mam, option)
 
 	oi4Application, err := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource, logger)
 	if err != nil {
@@ -45,11 +62,7 @@ func main() {
 		panic(err)
 	}
 
-	dataApplicationPublication := publication.NewBuilder(oi4Application). //
-										Oi4Source(applicationSource).                              //
-										Resource(api.ResourceData).                                //
-										PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-										Build()
+	dataApplicationPublication := publication.NewResourcePublication(oi4Application, applicationSource, api.ResourceData)
 
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
@@ -80,11 +93,7 @@ func main() {
 		panic(err)
 	}
 
-	metaDataApplicationPublication := publication.NewBuilder(oi4Application). //
-											Oi4Source(applicationSource).                              //
-											Resource(api.ResourceMetadata).                            //
-											PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-											Build()
+	metaDataApplicationPublication := publication.NewResourcePublication(oi4Application, applicationSource, api.ResourceMetadata)
 
 	err = oi4Application.RegisterPublication(metaDataApplicationPublication)
 	if err != nil {
@@ -92,7 +101,7 @@ func main() {
 		panic(err)
 	}
 
-	assetSource := application.NewSourceImpl(api.MasterAssetModel{
+	assetSource := source.NewAssetSourceImpl(api.MasterAssetModel{
 		Manufacturer: api.LocalizedText{
 			Locale: "en-US",
 			Text:   "ACME",
@@ -119,12 +128,7 @@ func main() {
 
 	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
 
-	dataAssetPublication := publication.NewBuilder(oi4Application). //
-									Oi4Source(assetSource).                                    //
-									Resource(api.ResourceData).                                //
-									PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-									Build()
-
+	dataAssetPublication := publication.NewResourcePublication(oi4Application, assetSource, api.ResourceData)
 	assetTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
@@ -141,11 +145,7 @@ func main() {
 		panic(err)
 	}
 
-	metaDataAssetPublication := publication.NewBuilder(oi4Application). //
-										Oi4Source(assetSource).                                    //
-										Resource(api.ResourceMetadata).                            //
-										PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-										Build()
+	metaDataAssetPublication := publication.NewResourcePublication(oi4Application, assetSource, api.ResourceMetadata)
 
 	err = oi4Asset.RegisterPublication(metaDataAssetPublication)
 	if err != nil {
@@ -157,7 +157,7 @@ func main() {
 
 	done := make(chan bool)
 	go func() {
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(180 * time.Second)
 		defer ticker.Stop()
 
 		for i := 1; i <= 10; i++ {

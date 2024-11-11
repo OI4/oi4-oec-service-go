@@ -17,3 +17,9 @@ type LicenseText struct {
 func (l *LicenseText) Payload() any {
 	return l
 }
+
+func EmptyLicense() License {
+	return License{
+		Components: make([]LicenseComponent, 0),
+	}
+}

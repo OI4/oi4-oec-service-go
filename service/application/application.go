@@ -9,8 +9,9 @@ import (
 	"github.com/OI4/oi4-oec-service-go/service/opc"
 	"github.com/OI4/oi4-oec-service-go/service/topic"
 	"go.uber.org/zap"
+	"maps"
+	"slices"
 	"sync"
-	"time"
 )
 
 var (
@@ -27,90 +28,88 @@ type Oi4ApplicationImpl struct {
 
 	mqttClient *mqtt.Client
 
-	assets     map[api.Oi4Identifier]*Oi4Asset
+	assets     map[api.Oi4Identifier]*AssetImpl
 	assetMutex sync.RWMutex
 
-	publicationsList map[api.ResourceType]pub.Publication
+	publications     map[api.ResourceType]api.Publication
 	publicationMutex sync.RWMutex
 
-	applicationSource api.Oi4ApplicationSource
+	applicationSource api.ApplicationSource
 
 	logger *zap.SugaredLogger
+
+	scheduler api.IntervalPublicationScheduler
 }
 
 // CreateNewApplication Create a new Application host of a specific service type
-func CreateNewApplication(serviceType api.ServiceType, applicationSource api.Oi4ApplicationSource, logger *zap.SugaredLogger) (*Oi4ApplicationImpl, error) {
+func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger) (*Oi4ApplicationImpl, error) {
 	mam := applicationSource.GetMasterAssetModel()
+	scheduler := pub.NewIntervalPublicationSchedulerImpl(50, 5)
 	application := &Oi4ApplicationImpl{
 
 		mam:           &mam,
 		oi4Identifier: mam.ToOi4Identifier(),
 		serviceType:   serviceType,
 
-		assets:     make(map[api.Oi4Identifier]*Oi4Asset),
+		assets:     make(map[api.Oi4Identifier]*AssetImpl),
 		assetMutex: sync.RWMutex{},
 
-		publicationsList: make(map[api.ResourceType]pub.Publication),
+		publications:     make(map[api.ResourceType]api.Publication),
 		publicationMutex: sync.RWMutex{},
 
 		applicationSource: applicationSource,
 		logger:            logger,
+		scheduler:         scheduler,
 	}
 	applicationSource.SetOi4Application(application)
 
 	return application, nil
 }
 
+func (app *Oi4ApplicationImpl) GetApplicationSource() api.ApplicationSource {
+	return app.applicationSource
+}
+
 func (app *Oi4ApplicationImpl) GetLogger() *zap.SugaredLogger {
 	return app.logger
 }
 
+func (app *Oi4ApplicationImpl) GetIntervalPublicationScheduler() api.IntervalPublicationScheduler {
+	return app.scheduler
+}
+
 // RegisterPublication Register a publisher for the specific application
 // you can overwrite built-in publications like MAM, Health etc...
-func (app *Oi4ApplicationImpl) RegisterPublication(publication pub.Publication) error {
+func (app *Oi4ApplicationImpl) RegisterPublication(publication api.Publication) error {
 	app.publicationMutex.Lock()
 	defer app.publicationMutex.Unlock()
 
-	app.publicationsList[publication.GetResource()] = publication
+	app.publications[publication.GetResource()] = publication
 	publication.Start()
 
 	return nil
 }
 
-// GetPublications Return all resources where a publication is registered
-func (app *Oi4ApplicationImpl) GetPublications() []api.ResourceType {
+// GetPublications Return all registered publications
+func (app *Oi4ApplicationImpl) GetPublications() []api.Publication {
 	app.publicationMutex.RLock()
 	defer app.publicationMutex.RUnlock()
 
-	resources := make([]api.ResourceType, len(app.publicationsList))
-	i := 0
-	for key := range app.publicationsList {
-		resources[i] = key
-		i++
-	}
-
-	return resources
+	return slices.Collect(maps.Values(app.publications))
 }
 
 // RegisterAsset Add new asset to the application
-func (app *Oi4ApplicationImpl) RegisterAsset(asset *Oi4Asset) {
+func (app *Oi4ApplicationImpl) RegisterAsset(asset *AssetImpl) {
 	app.assetMutex.RLock()
 	defer app.assetMutex.RUnlock()
 
 	asset.setParent(app)
 	oi4Id := asset.mam.ToOi4Identifier()
 	app.assets[*oi4Id] = asset
-
-	//for _, publication := range asset.publicationsList {
-	//if publication.publishOnRegistration() {
-	//publication.triggerSourcePublication(false, true, "")
-	//app.triggerSourcePublication(false, true, "")
-	//}
-	//}
 }
 
 // RemoveAsset remove an asset from the application
-func (app *Oi4ApplicationImpl) RemoveAsset(asset *Oi4Asset) {
+func (app *Oi4ApplicationImpl) RemoveAsset(asset *AssetImpl) {
 	app.assetMutex.RLock()
 	defer app.assetMutex.RUnlock()
 
@@ -119,8 +118,7 @@ func (app *Oi4ApplicationImpl) RemoveAsset(asset *Oi4Asset) {
 }
 
 func (app *Oi4ApplicationImpl) UpdateHealth(health api.Health) {
-	// TODO implement me
-	//app.publicationsList[api.ResourceHealth].(*PublicationImpl).SetData(&health)
+	app.applicationSource.UpdateHealth(health)
 }
 
 func (app *Oi4ApplicationImpl) GetMam() *api.MasterAssetModel {
@@ -128,36 +126,37 @@ func (app *Oi4ApplicationImpl) GetMam() *api.MasterAssetModel {
 }
 
 func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.PublicationMessage) {
-	if app.mqttClient != nil && publication.Data != nil {
-		// Deal with combined messages
-		//var source *api.Oi4Identifier
-		//if publication.source != nil &&
-		//	(publication.publicationMode == api.PublicationMode_SOURCE_3 ||
-		//		publication.publicationMode == api.PublicationMode_APPLICATION_SOURCE_FILTER_8 ||
-		//		publication.publicationMode == api.PublicationMode_SOURCE_FILTER_7 ||
-		//		publication.publicationMode == api.PublicationMode_APPLICATION_SOURCE_5) {
-		//	source = publication.source
-		//}
-		source := publication.Source
-
-		tp := topic.NewTopic(
-			app.serviceType,
-			*app.mam.ToOi4Identifier(),
-			api.MethodPub,
-			publication.Resource,
-			source,
-			nil,
-			publication.Filter,
-		)
-
-		dswId := opc.GetDataSetWriterId(publication.Resource, *source)
-
-		err := app.mqttClient.PublishResource(tp.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication.Resource, publication.Source, dswId, publication.CorrelationId, publication.Data))
-		if err != nil {
-			return
-		}
-
+	if app.mqttClient == nil || publication.Content == nil || len(publication.Content) == 0 {
+		return
 	}
+
+	// Deal with combined messages
+	//var source *api.Oi4Identifier
+	//if publication.source != nil &&
+	//	(publication.publicationMode == api.PublicationMode_SOURCE_3 ||
+	//		publication.publicationMode == api.PublicationMode_APPLICATION_SOURCE_FILTER_8 ||
+	//		publication.publicationMode == api.PublicationMode_SOURCE_FILTER_7 ||
+	//		publication.publicationMode == api.PublicationMode_APPLICATION_SOURCE_5) {
+	//	source = publication.source
+	//}
+	source := publication.Source
+
+	tp := topic.NewTopic(
+		app.serviceType,
+		*app.mam.ToOi4Identifier(),
+		api.MethodPub,
+		publication.Resource,
+		source,
+		nil,
+		publication.Filter,
+	)
+
+	err := app.mqttClient.PublishResource(tp.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
+	if err != nil {
+		return
+	}
+	app.logger.Debugf("Published message to topic: %s", tp.ToString())
+
 }
 
 // Start  application and connect to broker
@@ -179,13 +178,12 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	}
 	app.mqttClient = client
 
-	//app.mqttClient.RegisterGetHandler(app.serviceType, api.Oi4IdentifierString(app.mam.ToOi4Identifier().ToString()), func(resource api.ResourceType, source api.Oi4IdentifierString, networkMessage api.NetworkMessage) {
 	app.mqttClient.RegisterGetHandler(app.serviceType, *app.mam.ToOi4Identifier(), func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage) {
 		if source == nil {
 			// TODO return all resources
 			return
 		}
-		var oi4Source api.Oi4Source
+		var oi4Source api.BaseSource
 		if source.Equals(app.mam.ToOi4Identifier()) {
 			oi4Source = app.applicationSource
 		} else {
@@ -196,12 +194,12 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 			return
 		}
 
-		var filter api.Filter
+		var filter *api.Filter
 		if len(networkMessage.Messages) > 0 {
 			filter = networkMessage.Messages[0].Filter
 		}
 
-		app.triggerSourcePublication(oi4Source, resource, filter, pub.OnRequest, networkMessage.MessageId)
+		app.triggerSourcePublication(oi4Source, resource, filter, api.OnRequest, &networkMessage.MessageId)
 	})
 
 	err = app.registerPublications()
@@ -209,120 +207,56 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 		return err
 	}
 
-	//applicationTicker := time.NewTicker(100 * time.Millisecond)
-	//go func() {
-	//	for {
-	//		<-applicationTicker.C
-	//
-	//		data := api.NewOi4Data(rand.Float64())
-	//
-	//		addValue := func(key string, value any) {
-	//			dErr := data.AddSecondaryData(key, &value)
-	//
-	//			if dErr != nil {
-	//				logger.Error("Failed to add secondary data:", dErr)
-	//			}
-	//		}
-	//
-	//		addValue("Sv1", rand.Float64())
-	//		addValue("Sv2", rand.Float64())
-	//
-	//		applicationSource.UpdateData(data, "Oi4Data")
-	//	}
-	//
-	//}()
+	app.GetIntervalPublicationScheduler().Start()
+
 	return nil
 }
 
-func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.Oi4Source, _ *string) {
-	app.triggerSourcePublication(source, resource, nil, pub.OnRequest, "")
+func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, _ *string) {
+	app.triggerSourcePublication(source, resource, nil, api.OnRequest, nil)
 }
 
 func (app *Oi4ApplicationImpl) registerPublications() error {
 	// register built-in publications
-	err := app.RegisterPublication(pub.NewIntervalBuilder(app, 60*time.Second). //
-											Oi4Source(app.applicationSource).                          //
-											Resource(api.ResourceData).                                //
-											PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-											Build())
+	err := app.RegisterPublication(pub.NewHealthPublication(app, app.applicationSource)) //
+
 	//.SetDataFunc(func() *api.Health {health := application.applicationSource.GetHealth() return &health})
 	if err != nil {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewBuilder(app). //
-								Oi4Source(app.applicationSource).                          //
-								Resource(api.ResourceMam).                                 //
-								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-								PublishOnRegistration(true).                               //
-								Build())
+	err = app.RegisterPublication(pub.NewMAMPublication(app, app.applicationSource))
 
 	if err != nil {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewBuilder(app). //
-								Oi4Source(app.applicationSource).                          //
-								Resource(api.ResourceLicense).                             //
-								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-								Build())
+	err = app.RegisterPublication(pub.NewResourcePublication(app, app.applicationSource, api.ResourceLicense))
 	//SetDataFunc(func() *api.License {// Dummy implementation yet		components := make([]api.LicenseComponent, 0)		return &api.License{			Components: components,		}	}).
 
 	if err != nil {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewBuilder(app). //
-								Oi4Source(app.applicationSource).                          //
-								Resource(api.ResourceLicenseText).                         //
-								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-								Build())
+	err = app.RegisterPublication(pub.NewResourcePublication(app, app.applicationSource, api.ResourceLicenseText))
 	//SetDataFunc(func() *api.LicenseText {		// Dummy implementation yet		return &api.LicenseText{			LicenseText: "",		}	}).
 
 	if err != nil {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewBuilder(app). //
-								Oi4Source(app.applicationSource).                          //
-								Resource(api.ResourcePublicationList).                     //
-								PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
-								Build())
-	//SetDataFunc(func() *api.PublicationList {
+	err = app.RegisterPublication(pub.NewResourcePublication(app, app.applicationSource, api.ResourcePublicationList))
 
-	//publications := make([]api.PublicationList, len(application.publicationsList))
-	//var publicationList api.PublicationList
-	//for key := range application.publicationsList {
-	//	publication := application.publicationsList[key]
-	//	mode := publication.getPublicationMode()
-	//	publicationList = api.PublicationList{
-	//		ResourceType:    key,
-	//		Source:          publication.getSource().ToString(),
-	//		DataSetWriterId: opc.GetDataSetWriterId(publication.getResource(), *publication.getSource()),
-	//		Mode:            &mode,
-	//	}
-	//}
-	//return &publicationList
-	//}).
 	if err != nil {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewBuilder(app). //
-								Oi4Source(app.applicationSource).                   //
-								Resource(api.ResourceProfile).                      //
-								PublicationMode(api.PublicationMode_APPLICATION_2). //
-								Build())
-	//SetDataFunc(func() *api.Profile {
-	//resources := make([]api.ResourceType, 0)
-	//for key := range application.publicationsList {
-	//	resources = append(resources, key)
-	//}
-	//profile := api.Profile{
-	//	Resources: resources,
-	//}
-	//return &profile
-	//})
+	err = app.RegisterPublication(pub.NewBuilder(app).
+		Oi4Source(app.applicationSource).
+		Resource(api.ResourceProfile).
+		PublicationMode(api.PublicationMode_APPLICATION_2).
+		Build())
+
 	if err != nil {
 		return err
 	}
@@ -330,9 +264,26 @@ func (app *Oi4ApplicationImpl) registerPublications() error {
 	return nil
 }
 
-// func (app *Oi4ApplicationImpl) triggerSourcePublication(byInterval bool, onRequest bool, correlationId string) {
-func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.Oi4Source, resource api.ResourceType, filter api.Filter, trigger pub.Trigger, correlationId string) {
-	publication := app.publicationsList[resource]
+func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, resource api.ResourceType, _ *api.Filter, trigger api.Trigger, correlationId *string) {
+	var publication api.Publication
+	if source.Equals(app.applicationSource) {
+		publication = app.publications[resource]
+	} else {
+		var asset *AssetImpl
+
+		for _, as := range app.assets {
+			if as.source.Equals(source) {
+				asset = as
+			}
+		}
+
+		if asset == nil {
+			return
+		}
+
+		publication = asset.publications[resource]
+	}
+
 	if publication == nil {
 		return
 	}
@@ -340,8 +291,8 @@ func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.Oi4Source, re
 	publication.TriggerPublication(trigger, correlationId)
 }
 
-func (app *Oi4ApplicationImpl) shouldPublicate(trigger pub.Trigger, publication *api.PublicationList) bool {
-	if trigger == pub.OnRequest {
+func (app *Oi4ApplicationImpl) shouldPublicate(trigger api.Trigger, publication *api.PublicationList) bool {
+	if trigger == api.OnRequest {
 		return true
 	}
 
@@ -352,8 +303,8 @@ func (app *Oi4ApplicationImpl) shouldPublicate(trigger pub.Trigger, publication 
 	}
 
 	interval := *publication.Interval
-	if interval == 0 && trigger != pub.ByInterval || //
-		interval != 0 && trigger == pub.ByInterval {
+	if interval == 0 && trigger != api.ByInterval || //
+		interval != 0 && trigger == api.ByInterval {
 		return true
 	}
 
@@ -361,18 +312,23 @@ func (app *Oi4ApplicationImpl) shouldPublicate(trigger pub.Trigger, publication 
 }
 
 func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
+	code := api.Status_Good
 	app.SendPublicationMessage(api.PublicationMessage{
-		Resource:   api.ResourceHealth,
-		StatusCode: api.Status_Good,
-		Source:     app.mam.ToOi4Identifier(),
+		Resource: api.ResourceHealth,
+		Source:   app.mam.ToOi4Identifier(),
+		Content: []api.PublicationContent{
+			{
+				StatusCode: &code,
+				Data:       &api.Health{Health: api.Health_Normal, HealthScore: 0},
+			},
+		},
 		//publicationMode: api.PublicationMode_APPLICATION_SOURCE_5,
-		Data: &api.Health{Health: api.Health_Normal, HealthScore: 0},
 	})
 }
 
 // Stop application and shutdown all publications and assets
 func (app *Oi4ApplicationImpl) Stop() {
-	for _, publication := range app.publicationsList {
+	for _, publication := range app.publications {
 		publication.Stop()
 	}
 	app.sendGracefulShutdown()

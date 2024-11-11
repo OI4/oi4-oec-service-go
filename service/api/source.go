@@ -1,14 +1,20 @@
 package api
 
-type Oi4ApplicationSource interface {
-	Oi4Source
+type ApplicationSource interface {
+	BaseSource
 
-	GetSources() map[Oi4Identifier]*Oi4Source
-	AddSource(Oi4Source)
+	GetSources() map[Oi4Identifier]*AssetSource
+	AddSource(AssetSource)
 	RemoveSource(Oi4Identifier)
 }
 
-type Oi4Source interface {
+type AssetSource interface {
+	BaseSource
+
+	SetAsset(asset Asset)
+}
+
+type BaseSource interface {
 	GetOi4Identifier() *Oi4Identifier
 
 	GetMasterAssetModel() MasterAssetModel
@@ -19,15 +25,15 @@ type Oi4Source interface {
 	GetData() Data
 	UpdateData(data Data, dataTag string)
 
-	GetConfig() *PublishConfig
+	GetConfig() PublishConfig
 
 	GetProfile() Profile
 
-	GetLicense() *[]License
+	GetLicense() License
 
 	GetLicenseText() map[string]LicenseText
 
-	GetRtLicense() *RtLicense
+	GetRtLicense() RtLicense
 
 	GetPublicationList() []PublicationList
 
@@ -35,7 +41,9 @@ type Oi4Source interface {
 
 	GetReferenceDesignation() ReferenceDesignation
 
-	Get(ResourceType) any
+	Get(ResourceType) []any
 
 	SetOi4Application(Oi4Application)
+
+	Equals(BaseSource) bool
 }
