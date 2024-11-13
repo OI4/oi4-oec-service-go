@@ -2,12 +2,9 @@ package source
 
 import (
 	"github.com/OI4/oi4-oec-service-go/service/api"
-	"maps"
-	"slices"
 )
 
 type BaseSourceImpl struct {
-	asset                api.Asset
 	profile              api.Profile
 	mam                  api.MasterAssetModel
 	health               api.Health
@@ -23,7 +20,7 @@ type BaseSourceImpl struct {
 
 	publicationProvider api.PublicationProvider
 
-	dataFn   func(source api.BaseSource) api.Data
+	dataFn   func(source api.BaseSource, filter api.Filter) api.Data
 	healthFn func(source api.BaseSource) api.Health
 }
 
@@ -45,10 +42,6 @@ func newBaseImpl(mam api.MasterAssetModel, options ...Option) *BaseSourceImpl {
 	}
 
 	return source
-}
-
-func (source *BaseSourceImpl) SetAsset(asset api.Asset) {
-	source.asset = asset
 }
 
 func (source *BaseSourceImpl) GetOi4Identifier() *api.Oi4Identifier {
@@ -81,9 +74,9 @@ func (source *BaseSourceImpl) UpdateHealth(health api.Health) {
 	}
 }
 
-func (source *BaseSourceImpl) GetData() api.Data {
+func (source *BaseSourceImpl) GetData(filter api.Filter) api.Data {
 	if source.dataFn != nil {
-		return source.dataFn(source)
+		return source.dataFn(source, filter)
 	}
 	return source.data
 }
@@ -104,12 +97,8 @@ func (source *BaseSourceImpl) GetLicense() api.License {
 }
 
 func (source *BaseSourceImpl) GetLicenseText(filter api.Filter) []api.LicenseText {
-	if len(source.licenseText) == 0 {
+	if len(source.licenseText) == 0 || filter == nil {
 		return nil
-	}
-
-	if filter == nil {
-		return slices.Collect(maps.Values(source.licenseText))
 	}
 
 	licenseText, ok := source.licenseText[filter.String()]
@@ -120,13 +109,22 @@ func (source *BaseSourceImpl) GetLicenseText(filter api.Filter) []api.LicenseTex
 	return nil
 }
 
+func (source *BaseSourceImpl) GetLicenseTexts() map[string]api.LicenseText {
+	if len(source.licenseText) == 0 {
+		return make(map[string]api.LicenseText)
+	}
+
+	return source.licenseText
+}
+
 func (source *BaseSourceImpl) GetRtLicense() api.RtLicense {
 	return source.rtLicense
 }
 
 func (source *BaseSourceImpl) GetPublicationList() []api.PublicationList {
-	publications := make([]api.PublicationList, len(source.publicationProvider.GetPublications()))
-	for i, pub := range source.publicationProvider.GetPublications() {
+	srcPublications := source.publicationProvider.GetPublications()
+	publications := make([]api.PublicationList, len(srcPublications))
+	for i, pub := range srcPublications {
 		var filter string
 		if pub.GetFilter() != nil {
 			filter = pub.GetFilter().String()
@@ -176,7 +174,7 @@ func (source *BaseSourceImpl) Get(resourceType api.ResourceType, filter api.Filt
 	case api.ResourceReferenceDesignation:
 		return []any{source.GetReferenceDesignation()}
 	case api.ResourceData:
-		return []any{source.GetData()}
+		return []any{source.GetData(filter)}
 	default:
 		return nil
 	}
@@ -202,7 +200,7 @@ func WithHealthFn(fn func(source api.BaseSource) api.Health) Option {
 	}
 }
 
-func WithDataFn(fn func(source api.BaseSource) api.Data) Option {
+func WithDataFn(fn func(source api.BaseSource, filter api.Filter) api.Data) Option {
 	return func(s *BaseSourceImpl) {
 		s.dataFn = fn
 	}

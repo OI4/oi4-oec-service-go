@@ -22,7 +22,7 @@ type BaseSource interface {
 	GetHealth() Health
 	UpdateHealth(Health)
 
-	GetData() Data
+	GetData(filter Filter) Data
 	UpdateData(data Data, dataTag string)
 
 	GetConfig() PublishConfig
@@ -32,6 +32,7 @@ type BaseSource interface {
 	GetLicense() License
 
 	GetLicenseText(filter Filter) []LicenseText
+	GetLicenseTexts() map[string]LicenseText
 
 	GetRtLicense() RtLicense
 

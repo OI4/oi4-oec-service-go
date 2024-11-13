@@ -31,7 +31,7 @@ type Oi4ApplicationImpl struct {
 	assets     map[api.Oi4Identifier]*AssetImpl
 	assetMutex sync.RWMutex
 
-	publications     map[api.ResourceType]api.Publication
+	publications     map[api.ResourceType][]api.Publication
 	publicationMutex sync.RWMutex
 
 	applicationSource api.ApplicationSource
@@ -54,7 +54,7 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		assets:     make(map[api.Oi4Identifier]*AssetImpl),
 		assetMutex: sync.RWMutex{},
 
-		publications:     make(map[api.ResourceType]api.Publication),
+		publications:     make(map[api.ResourceType][]api.Publication),
 		publicationMutex: sync.RWMutex{},
 
 		applicationSource: applicationSource,
@@ -78,13 +78,71 @@ func (app *Oi4ApplicationImpl) GetIntervalPublicationScheduler() api.IntervalPub
 	return app.scheduler
 }
 
+// Start  application and connect to broker
+func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
+	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
+	credentials := storage.SecretStorage.MqttCredentials
+	pwd, _ := credentials.Password()
+	mqttClientOptions := &mqtt.ClientOptions{
+		Host:     brokerConfig.Address,
+		Port:     int(brokerConfig.SecurePort),
+		Tls:      true,
+		Username: credentials.Username(),
+		Password: pwd,
+	}
+
+	client, err := mqtt.NewClient(mqttClientOptions)
+	if err != nil {
+		return err
+	}
+	app.mqttClient = client
+
+	app.mqttClient.RegisterGetHandler(app.serviceType, *app.mam.ToOi4Identifier(), app.GetHandler)
+
+	err = app.registerPublications()
+	if err != nil {
+		return err
+	}
+
+	app.GetIntervalPublicationScheduler().Start()
+
+	return nil
+}
+
+// Stop application and shutdown all publications and assets
+func (app *Oi4ApplicationImpl) Stop() {
+	for _, publication := range app.GetPublications() {
+		publication.Stop()
+	}
+	app.sendGracefulShutdown()
+	app.mqttClient.Stop()
+}
+
 // RegisterPublication Register a publisher for the specific application
 // you can overwrite built-in publications like MAM, Health etc...
 func (app *Oi4ApplicationImpl) RegisterPublication(publication api.Publication) error {
 	app.publicationMutex.Lock()
 	defer app.publicationMutex.Unlock()
 
-	app.publications[publication.GetResource()] = publication
+	resourcePublications := app.publications[publication.GetResource()]
+	if resourcePublications == nil {
+		resourcePublications = make([]api.Publication, 0)
+	}
+
+	found := false
+	for i, current := range resourcePublications {
+		if current.GetFilter().Equals(publication.GetFilter()) {
+			resourcePublications[i] = publication
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		resourcePublications = append(resourcePublications, publication)
+	}
+
+	app.publications[publication.GetResource()] = resourcePublications
 	publication.Start()
 
 	return nil
@@ -95,7 +153,13 @@ func (app *Oi4ApplicationImpl) GetPublications() []api.Publication {
 	app.publicationMutex.RLock()
 	defer app.publicationMutex.RUnlock()
 
-	return slices.Collect(maps.Values(app.publications))
+	result := make([]api.Publication, 0)
+	publications := slices.Collect(maps.Values(app.publications))
+	for _, current := range publications {
+		result = append(result, current...)
+	}
+
+	return result
 }
 
 // RegisterAsset Add new asset to the application
@@ -151,8 +215,6 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 		publication.Filter,
 	)
 
-	// TODO Check why filter is not in the topic
-
 	err := app.mqttClient.PublishResource(tp.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
 	if err != nil {
 		return
@@ -161,57 +223,34 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 
 }
 
-// Start  application and connect to broker
-func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
-	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
-	credentials := storage.SecretStorage.MqttCredentials
-	pwd, _ := credentials.Password()
-	mqttClientOptions := &mqtt.ClientOptions{
-		Host:     brokerConfig.Address,
-		Port:     int(brokerConfig.SecurePort),
-		Tls:      true,
-		Username: credentials.Username(),
-		Password: pwd,
-	}
-
-	client, err := mqtt.NewClient(mqttClientOptions)
-	if err != nil {
-		return err
-	}
-	app.mqttClient = client
-
-	app.mqttClient.RegisterGetHandler(app.serviceType, *app.mam.ToOi4Identifier(), func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage) {
-		if source == nil {
-			// TODO return all resources
-			return
+func (app *Oi4ApplicationImpl) GetHandler(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage) {
+	sources := make([]api.BaseSource, 0)
+	if source == nil {
+		sources = append(sources, app.applicationSource)
+		for _, asset := range app.assets {
+			sources = append(sources, asset.source)
 		}
-		var oi4Source api.BaseSource
+	} else {
 		if source.Equals(app.mam.ToOi4Identifier()) {
-			oi4Source = app.applicationSource
+			sources = append(sources, app.applicationSource)
 		} else {
-			oi4Source = app.assets[*source].source
+			sources = append(sources, app.assets[*source].source)
 		}
+	}
 
-		if oi4Source == nil {
-			return
-		}
+	if sources == nil || len(sources) == 0 {
+		return
+	}
 
-		var filter *api.Filter
+	for _, current := range sources {
+		var filter api.Filter
+		// TODO retrieve the topic filter as input
 		if len(networkMessage.Messages) > 0 {
 			filter = networkMessage.Messages[0].Filter
 		}
 
-		app.triggerSourcePublication(oi4Source, resource, filter, api.OnRequest, &networkMessage.MessageId)
-	})
-
-	err = app.registerPublications()
-	if err != nil {
-		return err
+		app.triggerSourcePublication(current, resource, filter, api.OnRequest, &networkMessage.MessageId)
 	}
-
-	app.GetIntervalPublicationScheduler().Start()
-
-	return nil
 }
 
 func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, _ *string) {
@@ -240,11 +279,11 @@ func (app *Oi4ApplicationImpl) registerPublications() error {
 		return err
 	}
 
-	err = app.RegisterPublication(pub.NewResourcePublication(app, app.applicationSource, api.ResourceLicenseText))
-	//SetDataFunc(func() *api.LicenseText {		// Dummy implementation yet		return &api.LicenseText{			LicenseText: "",		}	}).
-
-	if err != nil {
-		return err
+	for key, _ := range app.applicationSource.GetLicenseTexts() {
+		err = app.RegisterPublication(pub.NewResourcePublicationWithFilter(app, app.applicationSource, api.ResourceLicenseText, api.NewStringFilter(key)))
+		if err != nil {
+			return err
+		}
 	}
 
 	err = app.RegisterPublication(pub.NewResourcePublication(app, app.applicationSource, api.ResourcePublicationList))
@@ -266,10 +305,10 @@ func (app *Oi4ApplicationImpl) registerPublications() error {
 	return nil
 }
 
-func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, resource api.ResourceType, _ *api.Filter, trigger api.Trigger, correlationId *string) {
-	var publication api.Publication
+func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, resource api.ResourceType, filter api.Filter, trigger api.Trigger, correlationId *string) {
+	var publications []api.Publication
 	if source.Equals(app.applicationSource) {
-		publication = app.publications[resource]
+		publications = getPublications(app.publications, resource, filter)
 	} else {
 		var asset *AssetImpl
 
@@ -283,14 +322,17 @@ func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, r
 			return
 		}
 
-		publication = asset.publications[resource]
+		publications = getPublications(asset.publications, resource, filter)
+		//publication = asset.publications[resource]
 	}
 
-	if publication == nil {
+	if publications == nil || len(publications) == 0 {
 		return
 	}
 
-	publication.TriggerPublication(trigger, correlationId)
+	for _, publication := range publications {
+		publication.TriggerPublication(trigger, correlationId)
+	}
 }
 
 func (app *Oi4ApplicationImpl) shouldPublicate(trigger api.Trigger, publication *api.PublicationList) bool {
@@ -328,11 +370,17 @@ func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
 	})
 }
 
-// Stop application and shutdown all publications and assets
-func (app *Oi4ApplicationImpl) Stop() {
-	for _, publication := range app.publications {
-		publication.Stop()
+func getPublications(publications map[api.ResourceType][]api.Publication, resource api.ResourceType, filter api.Filter) []api.Publication {
+	resourcePublications := publications[resource]
+	if resourcePublications == nil || filter == nil {
+		return resourcePublications
 	}
-	app.sendGracefulShutdown()
-	app.mqttClient.Stop()
+
+	for _, current := range resourcePublications {
+		if current.GetFilter().Equals(filter) {
+			return []api.Publication{current}
+		}
+	}
+
+	return nil
 }

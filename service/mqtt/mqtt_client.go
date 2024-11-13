@@ -75,6 +75,7 @@ func (client *Client) PublishResource(topic string, data interface{}) error {
 }
 
 func (client *Client) RegisterGetHandler(serviceType api.ServiceType, appId api.Oi4Identifier, handler func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage)) {
+	// TODO Parse topic and provide to handler
 	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId.ToString())
 	client.client.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
 		networkMessage := api.NetworkMessage{}

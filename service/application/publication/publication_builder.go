@@ -15,6 +15,15 @@ func NewResourcePublication(application api.Oi4Application, oi4Source api.BaseSo
 					Build()
 }
 
+func NewResourcePublicationWithFilter(application api.Oi4Application, oi4Source api.BaseSource, resourceType api.ResourceType, filter api.Filter) *Impl {
+	return NewBuilder(application). //
+					Oi4Source(oi4Source).                                      //
+					Resource(resourceType).                                    //
+					PublicationMode(api.PublicationMode_APPLICATION_SOURCE_5). //
+					Filter(filter).                                            //
+					Build()
+}
+
 func NewMAMPublication(application api.Oi4Application, oi4Source api.BaseSource) *Impl {
 	mam := NewResourcePublication(application, oi4Source, api.ResourceMam)
 	mam.doPublishOnRegistration = true

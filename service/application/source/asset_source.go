@@ -20,6 +20,13 @@ func NewAssetSourceImpl(mam api.MasterAssetModel, options ...Option) *AssetSourc
 	return &source
 }
 
+func (source *AssetSourceImpl) SetAsset(asset api.Asset) {
+	source.asset = asset
+}
+
 func (source *AssetSourceImpl) GetPublications() []api.Publication {
+	if source.asset == nil {
+		return nil
+	}
 	return source.asset.GetPublications()
 }

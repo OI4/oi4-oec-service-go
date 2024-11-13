@@ -56,7 +56,7 @@ type DataSetMessage struct {
 	// Note The Filter helps to combine the DataSet in the Payload with the related source. In OPC UA context this is done via DataSetWriterId, but this is not very intuitive and might need additional actions to get missing information via PublicationList  defined in 9.3.11.
 	//
 	// note Several resources such as MAM or Health and others do not make use of Filter in Message Bus topic and DataSetMessage.
-	Filter *Filter `json:"Filter,omitempty"`
+	Filter Filter `json:"Filter,omitempty"`
 
 	// Value range: <Oi4Identifier>
 	// Type: String
