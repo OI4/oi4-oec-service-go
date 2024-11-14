@@ -10,8 +10,15 @@ const Pv = "Pv"
 const svRegex = "^Sv\\d+$"
 
 type Data interface {
-	Resource
 	GetData() any
+}
+
+type SimpleData struct {
+	Value any
+}
+
+func (data *SimpleData) GetData() any {
+	return data.Value
 }
 
 type Oi4Data struct {
@@ -59,6 +66,9 @@ func ParseOi4Data(jsonData string) (*Oi4Data, error) {
 }
 
 func (data *Oi4Data) GetData() any {
+	if data.values == nil {
+		data.values = make(map[string]any)
+	}
 	data.values["Pv"] = data.PrimaryValue
 	return data.values
 }
@@ -80,8 +90,4 @@ func (data *Oi4Data) AddSecondaryData(tag string, value any) error {
 func (data *Oi4Data) Clear() {
 	clear(data.values)
 	data.PrimaryValue = nil
-}
-
-func (data *Oi4Data) Payload() any {
-	return data
 }

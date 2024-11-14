@@ -25,7 +25,3 @@ type ReferenceDesignation struct {
 	Product  *ReferenceDesignationFunction `json:"Product,omitempty"`
 	Location *ReferenceDesignationFunction `json:"Location,omitempty"`
 }
-
-func (r *ReferenceDesignation) Payload() any {
-	return r
-}

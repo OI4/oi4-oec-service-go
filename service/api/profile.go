@@ -4,10 +4,6 @@ type Profile struct {
 	Resources []ResourceType `json:"Resources"`
 }
 
-func (p *Profile) Payload() any {
-	return p
-}
-
 func ProfileApplication() Profile {
 	return Profile{
 		Resources: []ResourceType{

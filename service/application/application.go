@@ -233,8 +233,8 @@ func (app *Oi4ApplicationImpl) GetHandler(resource api.ResourceType, source *api
 	} else {
 		if source.Equals(app.mam.ToOi4Identifier()) {
 			sources = append(sources, app.applicationSource)
-		} else {
-			sources = append(sources, app.assets[*source].source)
+		} else if asset, ok := app.assets[*source]; ok {
+			sources = append(sources, asset.source)
 		}
 	}
 
@@ -323,7 +323,6 @@ func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, r
 		}
 
 		publications = getPublications(asset.publications, resource, filter)
-		//publication = asset.publications[resource]
 	}
 
 	if publications == nil || len(publications) == 0 {

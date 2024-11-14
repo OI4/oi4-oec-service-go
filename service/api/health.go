@@ -14,7 +14,3 @@ type Health struct {
 	Health      HealthEnum `json:"Health"`
 	HealthScore byte       `json:"HealthScore"`
 }
-
-func (h *Health) Payload() any {
-	return h
-}

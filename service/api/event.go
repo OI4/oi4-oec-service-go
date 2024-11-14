@@ -15,7 +15,3 @@ type Event struct {
 	Category    EventCategory `json:"Category"`
 	Details     interface{}   `json:"Details"`
 }
-
-func (e *Event) Payload() any {
-	return e
-}

@@ -74,5 +74,5 @@ type DataSetMessage struct {
 	// This object contains the name-value pairs specified by the PublishedDataSet.
 	//
 	// note In general, all built-in data types should be possible, but it seems to be problematic to use ExtensionObject, Variant, DataValue, DiagnosticInfo and in some cases NodeId.
-	Payload interface{} `json:"Payload"`
+	Payload any `json:"Payload"`
 }

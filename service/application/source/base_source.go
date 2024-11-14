@@ -22,8 +22,9 @@ type BaseSourceImpl struct {
 
 	publicationProvider api.PublicationProvider
 
-	dataFn   func(source api.BaseSource, filter api.Filter) []api.Data
-	healthFn func(source api.BaseSource) api.Health
+	dataFn        func(source api.BaseSource, filter api.Filter) []api.Data
+	dataWrapperFn func([]api.Data) []any
+	healthFn      func(source api.BaseSource) api.Health
 }
 
 func newBaseImpl(mam api.MasterAssetModel, options ...Option) *BaseSourceImpl {
@@ -161,35 +162,58 @@ func (source *BaseSourceImpl) GetReferenceDesignation() api.ReferenceDesignation
 }
 
 func (source *BaseSourceImpl) Get(resourceType api.ResourceType, filter api.Filter) []any {
-	switch resourceType {
-	case api.ResourceProfile:
-		return []any{source.GetProfile()}
-	case api.ResourceMam:
-		return []any{source.GetMasterAssetModel()}
-	case api.ResourceHealth:
-		return []any{source.GetHealth()}
-	case api.ResourceConfig:
-		return []any{source.GetConfig()}
-	case api.ResourceLicense:
-		return []any{source.GetLicense()}
-	case api.ResourceLicenseText:
-		return toAnySlice(source.GetLicenseText(filter))
-	case api.ResourceRtLicense:
-		return []any{source.GetRtLicense()}
-	case api.ResourcePublicationList:
-		return toAnySlice(source.GetPublicationList())
-	case api.ResourceSubscriptionList:
-		return toAnySlice(source.GetSubscriptionList())
-	case api.ResourceReferenceDesignation:
-		return []any{source.GetReferenceDesignation()}
-	case api.ResourceData:
-		return []any{source.GetData(filter)}
-	default:
-		return nil
+	getResource := func() any {
+		switch resourceType {
+		case api.ResourceProfile:
+			return source.GetProfile()
+		case api.ResourceMam:
+			return source.GetMasterAssetModel()
+		case api.ResourceHealth:
+			return source.GetHealth()
+		case api.ResourceConfig:
+			return source.GetConfig()
+		case api.ResourceLicense:
+			return source.GetLicense()
+		case api.ResourceLicenseText:
+			return source.GetLicenseText(filter)
+		case api.ResourceRtLicense:
+			return source.GetRtLicense()
+		case api.ResourcePublicationList:
+			return source.GetPublicationList()
+		case api.ResourceSubscriptionList:
+			return source.GetSubscriptionList()
+		case api.ResourceReferenceDesignation:
+			return source.GetReferenceDesignation()
+		case api.ResourceData:
+			return source.wrapData(source.GetData(filter))
+		default:
+			return nil
+		}
 	}
+
+	return toAnySlice(getResource())
 }
 
-func toAnySlice[T any](input []T) []any {
+func (source *BaseSourceImpl) wrapData(data []api.Data) []any {
+	if data == nil || len(data) == 0 {
+		return nil
+	}
+
+	if source.dataWrapperFn != nil {
+		return source.dataWrapperFn(data)
+	}
+
+	result := make([]any, len(data))
+	for i, v := range data {
+		result[i] = v.GetData()
+	}
+	return result
+}
+
+func toAnySlice[T any](input ...T) []any {
+	if input == nil || len(input) == 0 {
+		return nil
+	}
 	result := make([]any, len(input))
 	for i, v := range input {
 		result[i] = v
@@ -212,6 +236,12 @@ func WithHealthFn(fn func(source api.BaseSource) api.Health) Option {
 func WithDataFn(fn func(source api.BaseSource, filter api.Filter) []api.Data) Option {
 	return func(s *BaseSourceImpl) {
 		s.dataFn = fn
+	}
+}
+
+func WithDataWrapperFn(fn func([]api.Data) []any) Option {
+	return func(s *BaseSourceImpl) {
+		s.dataWrapperFn = fn
 	}
 }
 

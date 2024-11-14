@@ -14,10 +14,6 @@ type LicenseText struct {
 	LicenseText string `json:"LicenseText"`
 }
 
-func (l *LicenseText) Payload() any {
-	return l
-}
-
 func EmptyLicense() License {
 	return License{
 		Components: make([]LicenseComponent, 0),

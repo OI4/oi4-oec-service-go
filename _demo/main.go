@@ -33,6 +33,9 @@ func main() {
 		panic(err)
 	}
 
+	/**********************************/
+	/* Create an application and source */
+	/**********************************/
 	option := source.WithHealthFn(
 		func(_ api.BaseSource) api.Health {
 			maxH := 100
@@ -68,7 +71,7 @@ func main() {
 		panic(err)
 	}
 
-	dataApplicationPublication := publication.NewResourcePublication(oi4Application, applicationSource, api.ResourceData)
+	dataApplicationPublication := publication.NewResourcePublicationWithFilter(oi4Application, applicationSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
 
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
@@ -107,58 +110,11 @@ func main() {
 		panic(err)
 	}
 
-	assetSource := source.NewAssetSourceImpl(api.MasterAssetModel{
-		Manufacturer: api.LocalizedText{
-			Locale: "en-US",
-			Text:   "ACME",
-		},
-		ManufacturerUri: "acme.com",
-		Model: api.LocalizedText{
-			Locale: "en-US",
-			Text:   "SampleAsset",
-		},
-		ProductCode:        "08",
-		HardwareRevision:   "0",
-		SoftwareRevision:   "0",
-		DeviceRevision:     "0",
-		DeviceManual:       "",
-		DeviceClass:        "PerpetuumMobile",
-		SerialNumber:       "15",
-		ProductInstanceUri: "acme.com",
-		RevisionCounter:    0,
-		Description: api.LocalizedText{
-			Locale: "en-US",
-			Text:   "Cool Asset",
-		},
-	})
-
-	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
-
-	dataAssetPublication := publication.NewResourcePublicationWithFilter(oi4Application, assetSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
-	assetTicker := time.NewTicker(10 * time.Second)
-	go func() {
-		counter := 0
-		for {
-			<-assetTicker.C
-			data := api.Oi4Data{PrimaryValue: counter}
-			assetSource.UpdateData(&data, "Oi4Data")
-			counter++
-		}
-	}()
-	err = oi4Asset.RegisterPublication(dataAssetPublication)
-	if err != nil {
-		logger.Fatal("Failed to register publication:", err)
-		panic(err)
-	}
-
-	metaDataAssetPublication := publication.NewResourcePublication(oi4Application, assetSource, api.ResourceMetadata)
-
-	err = oi4Asset.RegisterPublication(metaDataAssetPublication)
-	if err != nil {
-		logger.Fatal("Failed to register publication:", err)
-		panic(err)
-	}
-
+	/*********************************/
+	/* Add an asset to the application */
+	/*********************************/
+	assetSource := newAssetSource()
+	oi4Asset := newAsset(oi4Application, assetSource, logger)
 	oi4Application.RegisterAsset(oi4Asset)
 
 	done := make(chan bool)
@@ -195,6 +151,64 @@ func main() {
 	oi4Application.Stop()
 
 	os.Exit(0)
+}
+
+func newAssetSource() *source.AssetSourceImpl {
+	return source.NewAssetSourceImpl(api.MasterAssetModel{
+		Manufacturer: api.LocalizedText{
+			Locale: "en-US",
+			Text:   "ACME",
+		},
+		ManufacturerUri: "acme.com",
+		Model: api.LocalizedText{
+			Locale: "en-US",
+			Text:   "SampleAsset",
+		},
+		ProductCode:        "08",
+		HardwareRevision:   "0",
+		SoftwareRevision:   "0",
+		DeviceRevision:     "0",
+		DeviceManual:       "",
+		DeviceClass:        "PerpetuumMobile",
+		SerialNumber:       "15",
+		ProductInstanceUri: "acme.com",
+		RevisionCounter:    0,
+		Description: api.LocalizedText{
+			Locale: "en-US",
+			Text:   "Cool Asset",
+		},
+	})
+}
+
+func newAsset(oi4Application *application.Oi4ApplicationImpl, assetSource api.AssetSource, logger *zap.SugaredLogger) *application.AssetImpl {
+
+	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
+
+	dataAssetPublication := publication.NewResourcePublicationWithFilter(oi4Application, assetSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
+	assetTicker := time.NewTicker(10 * time.Second)
+	go func() {
+		counter := 0
+		for {
+			<-assetTicker.C
+			data := api.Oi4Data{PrimaryValue: counter}
+			assetSource.UpdateData(&data, "Oi4Data")
+			counter++
+		}
+	}()
+	err := oi4Asset.RegisterPublication(dataAssetPublication)
+	if err != nil {
+		logger.Fatal("Failed to register publication:", err)
+		panic(err)
+	}
+
+	metaDataAssetPublication := publication.NewResourcePublication(oi4Application, assetSource, api.ResourceMetadata)
+
+	err = oi4Asset.RegisterPublication(metaDataAssetPublication)
+	if err != nil {
+		logger.Fatal("Failed to register publication:", err)
+		panic(err)
+	}
+	return oi4Asset
 }
 
 func getStorage(logger *zap.SugaredLogger) (*container.Storage, *api.MasterAssetModel, error) {

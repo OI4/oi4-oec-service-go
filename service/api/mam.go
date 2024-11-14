@@ -24,7 +24,3 @@ func (mam *MasterAssetModel) ToOi4Identifier() *Oi4Identifier {
 		SerialNumber:    mam.SerialNumber,
 	}
 }
-
-func (mam *MasterAssetModel) Payload() any {
-	return mam
-}

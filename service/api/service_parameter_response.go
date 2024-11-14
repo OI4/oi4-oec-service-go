@@ -1,5 +1,5 @@
 package api
 
 type ServiceParametersResponse struct {
-	Results []interface{} `json:"Results"`
+	Results []any `json:"Results"`
 }

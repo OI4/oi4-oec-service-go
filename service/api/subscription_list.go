@@ -12,7 +12,3 @@ type SubscriptionList struct {
 	Interval  uint32             `json:"Interval"`
 	Config    SubscriptionConfig `json:"Config"`
 }
-
-func (s *SubscriptionList) Payload() any {
-	return s
-}

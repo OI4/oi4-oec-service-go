@@ -50,5 +50,5 @@ type ServiceNetworkMessage struct {
 	// Value range: <ServiceParametersRequest> or <ServiceParametersResponse>
 	// Type: ServiceParametersRequest object (see 9.2.17) or ServiceParametersResponse object (see 9.2.19)
 	// Requirement: Mandatory
-	Message interface{} `json:"Message"`
+	Message any `json:"Message"`
 }

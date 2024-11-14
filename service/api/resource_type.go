@@ -2,10 +2,6 @@ package api
 
 import "fmt"
 
-type Resource interface {
-	Payload() any
-}
-
 type ResourceType string
 
 const (

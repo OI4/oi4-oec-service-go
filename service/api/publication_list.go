@@ -33,7 +33,3 @@ type PublicationList struct {
 	Precisions      *map[string]float32 `json:"Precisions,omitempty"`
 	Config          *PublicationConfig  `json:"PublicationConfig,omitempty"`
 }
-
-func (p *PublicationList) Payload() any {
-	return p
-}

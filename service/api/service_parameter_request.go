@@ -1,5 +1,5 @@
 package api
 
 type ServiceParameterRequest struct {
-	MethodsToCall []interface{} `json:"MessagesToCall"`
+	MethodsToCall []any `json:"MessagesToCall"`
 }
