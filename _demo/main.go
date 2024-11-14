@@ -134,7 +134,7 @@ func main() {
 
 	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
 
-	dataAssetPublication := publication.NewResourcePublication(oi4Application, assetSource, api.ResourceData)
+	dataAssetPublication := publication.NewResourcePublicationWithFilter(oi4Application, assetSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
 	assetTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0

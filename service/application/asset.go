@@ -78,7 +78,7 @@ func (asset *AssetImpl) RegisterPublication(publication api.Publication) error {
 
 	found := false
 	for i, current := range resourcePublications {
-		if current.GetFilter().Equals(publication.GetFilter()) {
+		if api.FilterEquals(current.GetFilter(), publication.GetFilter()) {
 			resourcePublications[i] = publication
 			found = true
 			break

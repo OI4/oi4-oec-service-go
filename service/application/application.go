@@ -131,7 +131,7 @@ func (app *Oi4ApplicationImpl) RegisterPublication(publication api.Publication) 
 
 	found := false
 	for i, current := range resourcePublications {
-		if current.GetFilter().Equals(publication.GetFilter()) {
+		if api.FilterEquals(current.GetFilter(), publication.GetFilter()) {
 			resourcePublications[i] = publication
 			found = true
 			break
@@ -253,8 +253,8 @@ func (app *Oi4ApplicationImpl) GetHandler(resource api.ResourceType, source *api
 	}
 }
 
-func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, _ *string) {
-	app.triggerSourcePublication(source, resource, nil, api.OnRequest, nil)
+func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, filter api.Filter) {
+	app.triggerSourcePublication(source, resource, filter, api.OnRequest, nil)
 }
 
 func (app *Oi4ApplicationImpl) registerPublications() error {
@@ -377,7 +377,7 @@ func getPublications(publications map[api.ResourceType][]api.Publication, resour
 	}
 
 	for _, current := range resourcePublications {
-		if current.GetFilter().Equals(filter) {
+		if api.FilterEquals(current.GetFilter(), filter) {
 			return []api.Publication{current}
 		}
 	}

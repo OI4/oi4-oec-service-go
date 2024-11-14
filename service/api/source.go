@@ -22,7 +22,7 @@ type BaseSource interface {
 	GetHealth() Health
 	UpdateHealth(Health)
 
-	GetData(filter Filter) Data
+	GetData(filter Filter) []Data
 	UpdateData(data Data, dataTag string)
 
 	GetConfig() PublishConfig

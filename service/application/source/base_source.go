@@ -2,6 +2,8 @@ package source
 
 import (
 	"github.com/OI4/oi4-oec-service-go/service/api"
+	"maps"
+	"slices"
 )
 
 type BaseSourceImpl struct {
@@ -14,13 +16,13 @@ type BaseSourceImpl struct {
 	rtLicense            api.RtLicense
 	subscriptionList     []api.SubscriptionList
 	referenceDesignation api.ReferenceDesignation
-	data                 api.Data
+	data                 map[string]api.Data
 
 	application api.Oi4Application
 
 	publicationProvider api.PublicationProvider
 
-	dataFn   func(source api.BaseSource, filter api.Filter) api.Data
+	dataFn   func(source api.BaseSource, filter api.Filter) []api.Data
 	healthFn func(source api.BaseSource) api.Health
 }
 
@@ -34,6 +36,7 @@ func newBaseImpl(mam api.MasterAssetModel, options ...Option) *BaseSourceImpl {
 		rtLicense:            api.RtLicense{},
 		subscriptionList:     make([]api.SubscriptionList, 0),
 		referenceDesignation: api.ReferenceDesignation{},
+		data:                 make(map[string]api.Data),
 	}
 
 	// Apply all the functional options to configure the client.
@@ -74,17 +77,23 @@ func (source *BaseSourceImpl) UpdateHealth(health api.Health) {
 	}
 }
 
-func (source *BaseSourceImpl) GetData(filter api.Filter) api.Data {
+func (source *BaseSourceImpl) GetData(filter api.Filter) []api.Data {
 	if source.dataFn != nil {
 		return source.dataFn(source, filter)
 	}
-	return source.data
+	if filter == nil {
+		return slices.Collect(maps.Values(source.data))
+	}
+	if data, ok := source.data[filter.String()]; ok {
+		return []api.Data{data}
+	}
+	return nil
 }
 
 func (source *BaseSourceImpl) UpdateData(data api.Data, dataTag string) {
-	source.data = data
+	source.data[dataTag] = data
 	if source.application != nil {
-		source.application.ResourceChanged(api.ResourceData, source, &dataTag)
+		source.application.ResourceChanged(api.ResourceData, source, api.NewStringFilter(dataTag))
 	}
 }
 
@@ -200,7 +209,7 @@ func WithHealthFn(fn func(source api.BaseSource) api.Health) Option {
 	}
 }
 
-func WithDataFn(fn func(source api.BaseSource, filter api.Filter) api.Data) Option {
+func WithDataFn(fn func(source api.BaseSource, filter api.Filter) []api.Data) Option {
 	return func(s *BaseSourceImpl) {
 		s.dataFn = fn
 	}

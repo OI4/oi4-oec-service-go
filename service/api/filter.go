@@ -2,15 +2,17 @@ package api
 
 type Filter interface {
 	String() string
-	Equals(Filter) bool
 }
 
 type StringFilter struct {
 	string
 }
 
-func (f *StringFilter) Equals(other Filter) bool {
-	return f.string == other.String()
+func FilterEquals(this Filter, that Filter) bool {
+	if this == nil || that == nil {
+		return false
+	}
+	return this.String() == that.String()
 }
 
 func NewStringFilter(s string) *StringFilter {
