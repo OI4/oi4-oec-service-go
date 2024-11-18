@@ -1,0 +1,5 @@
+/.idea/
+/docker_configs/
+/bin/
+/.mosquitto/
+.DS_Store
