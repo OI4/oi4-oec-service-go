@@ -22,7 +22,7 @@ type BaseSourceImpl struct {
 
 	publicationProvider api.PublicationProvider
 
-	dataFn        func(source api.BaseSource, filter api.Filter) []api.Data
+	dataFn        func(source api.BaseSource, filter *api.Filter) []api.Data
 	dataWrapperFn func([]api.Data) []any
 	healthFn      func(source api.BaseSource) api.Health
 }
@@ -78,7 +78,7 @@ func (source *BaseSourceImpl) UpdateHealth(health api.Health) {
 	}
 }
 
-func (source *BaseSourceImpl) GetData(filter api.Filter) []api.Data {
+func (source *BaseSourceImpl) GetData(filter *api.Filter) []api.Data {
 	if source.dataFn != nil {
 		return source.dataFn(source, filter)
 	}
@@ -94,7 +94,7 @@ func (source *BaseSourceImpl) GetData(filter api.Filter) []api.Data {
 func (source *BaseSourceImpl) UpdateData(data api.Data, dataTag string) {
 	source.data[dataTag] = data
 	if source.application != nil {
-		source.application.ResourceChanged(api.ResourceData, source, api.NewStringFilter(dataTag))
+		source.application.ResourceChanged(api.ResourceData, source, api.NewFilter(dataTag))
 	}
 }
 
@@ -106,7 +106,7 @@ func (source *BaseSourceImpl) GetLicense() api.License {
 	return source.license
 }
 
-func (source *BaseSourceImpl) GetLicenseText(filter api.Filter) []api.LicenseText {
+func (source *BaseSourceImpl) GetLicenseText(filter *api.Filter) []api.LicenseText {
 	if len(source.licenseText) == 0 || filter == nil {
 		return nil
 	}
@@ -135,14 +135,14 @@ func (source *BaseSourceImpl) GetPublicationList() []api.PublicationList {
 	srcPublications := source.publicationProvider.GetPublications()
 	publications := make([]api.PublicationList, len(srcPublications))
 	for i, pub := range srcPublications {
-		var filter string
+		var filter *api.Filter
 		if pub.GetFilter() != nil {
-			filter = pub.GetFilter().String()
+			filter = pub.GetFilter()
 		}
 		publications[i] = api.PublicationList{
 			ResourceType:    pub.GetResource(),
 			Source:          pub.GetSource().ToString(),
-			Filter:          &filter,
+			Filter:          filter,
 			DataSetWriterId: pub.GetDataSetWriterId(),
 			Mode:            pub.GetPublicationMode(),
 			//Interval:        pub.GetInterval(),
@@ -161,7 +161,7 @@ func (source *BaseSourceImpl) GetReferenceDesignation() api.ReferenceDesignation
 	return source.referenceDesignation
 }
 
-func (source *BaseSourceImpl) Get(resourceType api.ResourceType, filter api.Filter) []any {
+func (source *BaseSourceImpl) Get(resourceType api.ResourceType, filter *api.Filter) []any {
 	getResource := func() any {
 		switch resourceType {
 		case api.ResourceProfile:
@@ -233,7 +233,7 @@ func WithHealthFn(fn func(source api.BaseSource) api.Health) Option {
 	}
 }
 
-func WithDataFn(fn func(source api.BaseSource, filter api.Filter) []api.Data) Option {
+func WithDataFn(fn func(source api.BaseSource, filter *api.Filter) []api.Data) Option {
 	return func(s *BaseSourceImpl) {
 		s.dataFn = fn
 	}

@@ -25,10 +25,10 @@ type Topic struct {
 	Resource      api.ResourceType
 	Source        *api.Oi4Identifier
 	Category      *string
-	Filter        api.Filter
+	Filter        *api.Filter
 }
 
-func NewTopic(serviceType api.ServiceType, oi4Identifier api.Oi4Identifier, method api.MethodType, resource api.ResourceType, source *api.Oi4Identifier, category *string, filter api.Filter) Topic {
+func NewTopic(serviceType api.ServiceType, oi4Identifier api.Oi4Identifier, method api.MethodType, resource api.ResourceType, source *api.Oi4Identifier, category *string, filter *api.Filter) Topic {
 	return Topic{
 		ServiceType:   serviceType,
 		Oi4Identifier: oi4Identifier,
@@ -41,6 +41,9 @@ func NewTopic(serviceType api.ServiceType, oi4Identifier api.Oi4Identifier, meth
 }
 
 func ParseTopic(topic string) (*Topic, error) {
+	if topic == "" {
+		return nil, errors.New("topic is empty")
+	}
 	parts := strings.Split(topic, "/")
 	if len(parts) < 8 {
 		return nil, errors.New("invalid topic, to few parts")
@@ -98,10 +101,10 @@ func ParseTopic(topic string) (*Topic, error) {
 
 	var filter api.Filter
 	if len(parts) >= 14 {
-		filter = api.NewStringFilter(parts[13])
+		filter = api.Filter(parts[13])
 	}
 
-	result := NewTopic(*serviceType, *oi4Identifier, *method, *resource, source, category, filter)
+	result := NewTopic(*serviceType, *oi4Identifier, *method, *resource, source, category, &filter)
 	return &result, nil
 }
 

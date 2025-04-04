@@ -1,6 +1,6 @@
 module github.com/OI4/oi4-oec-service-go
 
-go 1.23.2
+go 1.24.2
 
 require (
 	github.com/OI4/dnp-encoder-go v0.9.0

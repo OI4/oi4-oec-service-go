@@ -15,7 +15,7 @@ func NewResourcePublication(application api.Oi4Application, oi4Source api.BaseSo
 					Build()
 }
 
-func NewResourcePublicationWithFilter(application api.Oi4Application, oi4Source api.BaseSource, resourceType api.ResourceType, filter api.Filter) *Impl {
+func NewResourcePublicationWithFilter(application api.Oi4Application, oi4Source api.BaseSource, resourceType api.ResourceType, filter *api.Filter) *Impl {
 	return NewBuilder(application). //
 					Oi4Source(oi4Source).                                      //
 					Resource(resourceType).                                    //
@@ -44,7 +44,7 @@ type BaseBuilder[T any] interface {
 	PublicationMode(mode api.PublicationMode) T
 	PublicationConfig(config api.PublicationConfig) T
 	StatusCode(status *api.StatusCode) T
-	Filter(filter api.Filter) T
+	Filter(filter *api.Filter) T
 	DataFunc(getDataFunc func() any) T
 }
 
@@ -61,7 +61,7 @@ type BuilderImpl struct {
 	resource                api.ResourceType
 	doPublishOnRegistration bool
 
-	filter            api.Filter //*string
+	filter            *api.Filter
 	publicationMode   *api.PublicationMode
 	publicationConfig api.PublicationConfig
 	statusCode        *api.StatusCode
@@ -116,7 +116,7 @@ func (p *BuilderImpl) StatusCode(status *api.StatusCode) Builder {
 	return p
 }
 
-func (p *BuilderImpl) Filter(filter api.Filter) Builder {
+func (p *BuilderImpl) Filter(filter *api.Filter) Builder {
 	p.filter = filter
 
 	return p
@@ -204,7 +204,7 @@ func (p *IntervalBuilderImpl) StatusCode(status *api.StatusCode) IntervalBuilder
 	return p
 }
 
-func (p *IntervalBuilderImpl) Filter(filter api.Filter) IntervalBuilder {
+func (p *IntervalBuilderImpl) Filter(filter *api.Filter) IntervalBuilder {
 	p.filter = filter
 
 	return p

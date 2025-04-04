@@ -26,7 +26,7 @@ const (
 type PublicationList struct {
 	ResourceType    `json:"Resource"`
 	Source          string              `json:"Source"`
-	Filter          *string             `json:"Filter,omitempty"`
+	Filter          *Filter             `json:"Filter,omitempty"`
 	DataSetWriterId uint16              `json:"DataSetWriterId"`
 	Mode            *PublicationMode    `json:"Mode"`
 	Interval        *uint32             `json:"Interval,omitempty"`

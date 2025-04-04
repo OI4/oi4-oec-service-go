@@ -1,24 +1,19 @@
 package api
 
-type Filter interface {
-	String() string
+type Filter string
+
+func NewFilter(s string) *Filter {
+	filter := Filter(s)
+	return &filter
 }
 
-type StringFilter struct {
-	string
-}
-
-func FilterEquals(this Filter, that Filter) bool {
+func FilterEquals(this *Filter, that *Filter) bool {
 	if this == nil || that == nil {
 		return false
 	}
-	return this.String() == that.String()
+	return *this == *that
 }
 
-func NewStringFilter(s string) *StringFilter {
-	return &StringFilter{s}
-}
-
-func (f *StringFilter) String() string {
-	return f.string
+func (f *Filter) String() string {
+	return string(*f)
 }

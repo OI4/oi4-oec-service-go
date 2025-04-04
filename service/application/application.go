@@ -249,11 +249,11 @@ func (app *Oi4ApplicationImpl) GetHandler(resource api.ResourceType, source *api
 			filter = networkMessage.Messages[0].Filter
 		}
 
-		app.triggerSourcePublication(current, resource, filter, api.OnRequest, &networkMessage.MessageId)
+		app.triggerSourcePublication(current, resource, &filter, api.OnRequest, &networkMessage.MessageId)
 	}
 }
 
-func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, filter api.Filter) {
+func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, filter *api.Filter) {
 	app.triggerSourcePublication(source, resource, filter, api.OnRequest, nil)
 }
 
@@ -280,7 +280,7 @@ func (app *Oi4ApplicationImpl) registerPublications() error {
 	}
 
 	for key, _ := range app.applicationSource.GetLicenseTexts() {
-		err = app.RegisterPublication(pub.NewResourcePublicationWithFilter(app, app.applicationSource, api.ResourceLicenseText, api.NewStringFilter(key)))
+		err = app.RegisterPublication(pub.NewResourcePublicationWithFilter(app, app.applicationSource, api.ResourceLicenseText, api.NewFilter(key)))
 		if err != nil {
 			return err
 		}
@@ -305,7 +305,7 @@ func (app *Oi4ApplicationImpl) registerPublications() error {
 	return nil
 }
 
-func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, resource api.ResourceType, filter api.Filter, trigger api.Trigger, correlationId *string) {
+func (app *Oi4ApplicationImpl) triggerSourcePublication(source api.BaseSource, resource api.ResourceType, filter *api.Filter, trigger api.Trigger, correlationId *string) {
 	var publications []api.Publication
 	if source.Equals(app.applicationSource) {
 		publications = getPublications(app.publications, resource, filter)
@@ -369,7 +369,7 @@ func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
 	})
 }
 
-func getPublications(publications map[api.ResourceType][]api.Publication, resource api.ResourceType, filter api.Filter) []api.Publication {
+func getPublications(publications map[api.ResourceType][]api.Publication, resource api.ResourceType, filter *api.Filter) []api.Publication {
 	resourcePublications := publications[resource]
 	if resourcePublications == nil || filter == nil {
 		return resourcePublications

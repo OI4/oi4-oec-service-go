@@ -14,7 +14,7 @@ var resource = api.ResourceMam
 
 func TestTopicToStringWithAllFieldsSet(t *testing.T) {
 	category := "Category"
-	filter := api.NewStringFilter("Filter")
+	filter := api.NewFilter("Filter")
 
 	topic := NewTopic(serviceType, *appId, method, resource, source, &category, filter)
 	expected := "Oi4/OTConnector/acme.com/FBC/fbc,25183z/FBC,23123/Get/MAM/acme.com/matches/m,2F42-A/F234,23862/Category/Filter"
@@ -50,6 +50,13 @@ func TestParseTopicWithValidTopic(t *testing.T) {
 	result, err = ParseTopic("Oi4/OTConnector/acme.com/SampleApplication/FC,23156/F87263976,234/Get/MAM/acme.com/SampleApplication/FC,23156/F87263976,234")
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
+}
+
+func TestParseTopicWithEmptyTopic(t *testing.T) {
+	topic := ""
+	_, err := ParseTopic(topic)
+	assert.NotNil(t, err)
+	assert.Equal(t, "topic is empty", err.Error())
 }
 
 func TestParseTopicWithInvalidNamespace(t *testing.T) {

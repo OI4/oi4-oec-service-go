@@ -22,7 +22,7 @@ type BaseSource interface {
 	GetHealth() Health
 	UpdateHealth(Health)
 
-	GetData(filter Filter) []Data
+	GetData(filter *Filter) []Data
 	UpdateData(data Data, dataTag string)
 
 	GetConfig() PublishConfig
@@ -31,7 +31,7 @@ type BaseSource interface {
 
 	GetLicense() License
 
-	GetLicenseText(filter Filter) []LicenseText
+	GetLicenseText(filter *Filter) []LicenseText
 	GetLicenseTexts() map[string]LicenseText
 
 	GetRtLicense() RtLicense
@@ -42,7 +42,7 @@ type BaseSource interface {
 
 	GetReferenceDesignation() ReferenceDesignation
 
-	Get(resource ResourceType, filter Filter) []any
+	Get(resource ResourceType, filter *Filter) []any
 
 	SetOi4Application(Oi4Application)
 
