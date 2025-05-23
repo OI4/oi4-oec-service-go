@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-
 	"github.com/OI4/oi4-oec-service-go/service/api"
 	"github.com/OI4/oi4-oec-service-go/service/tls"
-	tp "github.com/OI4/oi4-oec-service-go/service/topic"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -74,25 +71,19 @@ func (client *Client) PublishResource(topic string, data interface{}) error {
 	return nil
 }
 
-func (client *Client) RegisterGetHandler(serviceType api.ServiceType, appId api.Oi4Identifier, handler func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage)) {
+func (client *Client) RegisterGetHandler(serviceType api.ServiceType, appId api.Oi4Identifier, qos byte, handler api.MessageHandler) error {
 	// TODO Parse topic and provide to handler
 	topic := fmt.Sprintf("Oi4/%s/%s/Get/#", serviceType, appId.ToString())
-	client.client.Subscribe(topic, 1, func(_ mqtt.Client, message mqtt.Message) {
-		networkMessage := api.NetworkMessage{}
-		err := json.Unmarshal(message.Payload(), &networkMessage)
-		if err != nil {
-			log.Printf("%s %s topic:%s", "error unmarshalling network message", err, message.Topic())
-			return
-		}
-		topic, err := tp.ParseTopic(message.Topic())
+	return client.SubscribeToTopic(topic, qos, handler)
+}
 
-		if err != nil {
-			log.Printf("topic:%s invalid with: %v", message.Topic(), err)
-			return
-		}
+func (client *Client) Subscribe(subscription api.Subscription) error {
+	return client.SubscribeToTopic(subscription.GetTopic(), subscription.GetQoS(), subscription.GetHandler())
+}
 
-		handler(topic.Resource, topic.Source, networkMessage)
-	})
+func (client *Client) SubscribeToTopic(topic string, qos byte, handler api.MessageHandler) error {
+	token := client.client.Subscribe(topic, qos, handler.GetHandler())
+	return token.Error()
 }
 
 func (client *Client) Stop() {

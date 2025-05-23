@@ -122,3 +122,7 @@ func (t *Topic) ToString() string {
 
 	return topic
 }
+
+func (t *Topic) HasSameApplication(serviceType api.ServiceType, appID *api.Oi4Identifier) bool {
+	return t.ServiceType == serviceType && t.Oi4Identifier.Equals(appID)
+}

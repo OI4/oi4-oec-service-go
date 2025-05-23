@@ -4,10 +4,11 @@ import (
 	"errors"
 	"github.com/OI4/oi4-oec-service-go/service/api"
 	pub "github.com/OI4/oi4-oec-service-go/service/application/publication"
+	"github.com/OI4/oi4-oec-service-go/service/application/subscription"
 	"github.com/OI4/oi4-oec-service-go/service/container"
 	"github.com/OI4/oi4-oec-service-go/service/mqtt"
 	"github.com/OI4/oi4-oec-service-go/service/opc"
-	"github.com/OI4/oi4-oec-service-go/service/topic"
+	tp "github.com/OI4/oi4-oec-service-go/service/topic"
 	"go.uber.org/zap"
 	"maps"
 	"slices"
@@ -34,6 +35,9 @@ type Oi4ApplicationImpl struct {
 	publications     map[api.ResourceType][]api.Publication
 	publicationMutex sync.RWMutex
 
+	subscriptions      map[string]api.Subscription
+	subscriptionsMutex sync.RWMutex
+
 	applicationSource api.ApplicationSource
 
 	logger *zap.SugaredLogger
@@ -57,6 +61,9 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		publications:     make(map[api.ResourceType][]api.Publication),
 		publicationMutex: sync.RWMutex{},
 
+		subscriptions:      make(map[string]api.Subscription),
+		subscriptionsMutex: sync.RWMutex{},
+
 		applicationSource: applicationSource,
 		logger:            logger,
 		scheduler:         scheduler,
@@ -64,6 +71,10 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 	applicationSource.SetOi4Application(application)
 
 	return application, nil
+}
+
+func (app *Oi4ApplicationImpl) GetServiceType() api.ServiceType {
+	return app.serviceType
 }
 
 func (app *Oi4ApplicationImpl) GetApplicationSource() api.ApplicationSource {
@@ -91,16 +102,16 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 		Password: pwd,
 	}
 
-	client, err := mqtt.NewClient(mqttClientOptions)
-	if err != nil {
+	var err error
+	if app.mqttClient, err = mqtt.NewClient(mqttClientOptions); err != nil {
 		return err
 	}
-	app.mqttClient = client
 
-	app.mqttClient.RegisterGetHandler(app.serviceType, *app.mam.ToOi4Identifier(), app.GetHandler)
+	if err = app.mqttClient.RegisterGetHandler(app.serviceType, *app.mam.ToOi4Identifier(), 1, app.GetHandler()); err != nil {
+		return err
+	}
 
-	err = app.registerPublications()
-	if err != nil {
+	if err = app.registerPublications(); err != nil {
 		return err
 	}
 
@@ -205,7 +216,7 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 	//}
 	source := publication.Source
 
-	tp := topic.NewTopic(
+	topic := tp.NewTopic(
 		app.serviceType,
 		*app.mam.ToOi4Identifier(),
 		api.MethodPub,
@@ -215,46 +226,57 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 		publication.Filter,
 	)
 
-	err := app.mqttClient.PublishResource(tp.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
+	err := app.mqttClient.PublishResource(topic.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
 	if err != nil {
 		return
 	}
-	app.logger.Debugf("Published message to topic: %s", tp.ToString())
+	app.logger.Debugf("Published message to topic: %s", topic.ToString())
 
 }
 
-func (app *Oi4ApplicationImpl) GetHandler(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage) {
-	sources := make([]api.BaseSource, 0)
-	if source == nil {
-		sources = append(sources, app.applicationSource)
-		for _, asset := range app.assets {
-			sources = append(sources, asset.source)
-		}
-	} else {
-		if source.Equals(app.mam.ToOi4Identifier()) {
+func (app *Oi4ApplicationImpl) GetHandler() api.MessageHandler {
+	return subscription.NewMessageHandler(app, func(resource api.ResourceType, source *api.Oi4Identifier, networkMessage api.NetworkMessage, _ *tp.Topic) {
+		sources := make([]api.BaseSource, 0)
+		if source == nil {
 			sources = append(sources, app.applicationSource)
-		} else if asset, ok := app.assets[*source]; ok {
-			sources = append(sources, asset.source)
-		}
-	}
-
-	if sources == nil || len(sources) == 0 {
-		return
-	}
-
-	for _, current := range sources {
-		var filter api.Filter
-		// TODO retrieve the topic filter as input
-		if len(networkMessage.Messages) > 0 {
-			filter = networkMessage.Messages[0].Filter
+			for _, asset := range app.assets {
+				sources = append(sources, asset.source)
+			}
+		} else {
+			if source.Equals(app.mam.ToOi4Identifier()) {
+				sources = append(sources, app.applicationSource)
+			} else if asset, ok := app.assets[*source]; ok {
+				sources = append(sources, asset.source)
+			}
 		}
 
-		app.triggerSourcePublication(current, resource, &filter, api.OnRequest, &networkMessage.MessageId)
-	}
+		if sources == nil || len(sources) == 0 {
+			return
+		}
+
+		for _, current := range sources {
+			var filter api.Filter
+			// TODO retrieve the topic filter as input
+			if len(networkMessage.Messages) > 0 {
+				filter = networkMessage.Messages[0].Filter
+			}
+
+			app.triggerSourcePublication(current, resource, &filter, api.OnRequest, &networkMessage.MessageId)
+		}
+	})
 }
 
 func (app *Oi4ApplicationImpl) ResourceChanged(resource api.ResourceType, source api.BaseSource, filter *api.Filter) {
 	app.triggerSourcePublication(source, resource, filter, api.OnRequest, nil)
+}
+
+func (app *Oi4ApplicationImpl) RegisterSubscription(subscription api.Subscription) error {
+	app.subscriptionsMutex.Lock()
+	defer app.subscriptionsMutex.Unlock()
+
+	app.subscriptions[subscription.GetID()] = subscription
+
+	return app.mqttClient.Subscribe(subscription)
 }
 
 func (app *Oi4ApplicationImpl) registerPublications() error {

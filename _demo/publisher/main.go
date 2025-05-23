@@ -20,7 +20,7 @@ import (
 	"github.com/OI4/oi4-oec-service-go/service/api"
 )
 
-const baseDir = "./_demo/testdata/"
+const baseDir = "./_demo/publisher/testdata/"
 
 func main() {
 	logger := getLogger()
@@ -71,7 +71,7 @@ func main() {
 		panic(err)
 	}
 
-	dataApplicationPublication := publication.NewResourcePublicationWithFilter(oi4Application, applicationSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
+	dataApplicationPublication := publication.NewResourcePublicationWithFilter(oi4Application, applicationSource, api.ResourceData, api.NewFilter("Oi4Data"))
 
 	applicationTicker := time.NewTicker(10 * time.Second)
 	go func() {
@@ -184,7 +184,7 @@ func newAsset(oi4Application *application.Oi4ApplicationImpl, assetSource api.As
 
 	oi4Asset := application.CreateNewAsset(assetSource, oi4Application)
 
-	dataAssetPublication := publication.NewResourcePublicationWithFilter(oi4Application, assetSource, api.ResourceData, api.NewStringFilter("Oi4Data"))
+	dataAssetPublication := publication.NewResourcePublicationWithFilter(oi4Application, assetSource, api.ResourceData, api.NewFilter("Oi4Data"))
 	assetTicker := time.NewTicker(10 * time.Second)
 	go func() {
 		counter := 0
