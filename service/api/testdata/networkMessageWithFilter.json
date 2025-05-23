@@ -1,0 +1,42 @@
+{
+  "MessageId": "01743764624741-Registry/acme.com/OEC,20Utility/OEC-ACME-Registry/F12AB34",
+  "MessageType": "ua-data",
+  "DataSetClassId": "2ae0505e-2830-4980-b65e-0bbdf08e2d45",
+  "PublisherId": "Registry/acme.com/OEC,20Utility/OEC-ACME-Registry/F12AB34",
+  "Messages": [
+    {
+      "DataSetWriterId": 19,
+      "Timestamp": "2025-04-04T11:03:44.741Z",
+      "Filter": "BSD-2-Clause",
+      "Source": "acme.com/OEC,20Utility/OEC-ACME-Registry/F12AB34",
+      "Payload": {
+        "Components": [
+          {
+            "Component": "dotenv",
+            "LicAuthors": [
+              "motdotla",
+              "maxbeatty",
+              "jcblw",
+              "jessefulton",
+              "et al"
+            ],
+            "LicAddText": "https://www.npmjs.com/package/dotenv"
+          }
+        ]
+      }
+    },
+    {
+      "DataSetWriterId": 2,
+      "Timestamp": "2025-04-04T11:03:44.741Z",
+      "Source": "acme.com/OEC,20Utility/OEC-ACME-Registry/F12AB34",
+      "Payload": {
+        "TotalCount": 2,
+        "PerPage": 1,
+        "Page": 2,
+        "HasNext": false,
+        "PaginationId": "01743764624741-Registry/acme.com/OEC,20Utility/OEC-ACME-Registry/F12AB34"
+      }
+    }
+  ],
+  "CorrelationId": "1743764624739-Utility/acme.org/OEC,20Conformity,20Validator/OEC-CONFORMITY-VALIDATOR/47110815"
+}

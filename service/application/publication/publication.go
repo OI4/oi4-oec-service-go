@@ -12,7 +12,7 @@ type Impl struct {
 	oi4Source               api.BaseSource
 	doPublishOnRegistration bool
 	resource                api.ResourceType
-	filter                  api.Filter
+	filter                  *api.Filter
 	publicationMode         *api.PublicationMode
 	publicationConfig       api.PublicationConfig
 	statusCode              *api.StatusCode
@@ -54,7 +54,7 @@ func (p *Impl) GetDataSetWriterId() uint16 {
 	return p.dataSetWriterId
 }
 
-func (p *Impl) GetFilter() api.Filter {
+func (p *Impl) GetFilter() *api.Filter {
 	return p.filter
 }
 

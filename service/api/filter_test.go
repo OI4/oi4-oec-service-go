@@ -6,7 +6,7 @@ import (
 )
 
 func TestStringFilter(t *testing.T) {
-	var filter Filter
-	filter = NewStringFilter("test")
-	assert.Equal(t, "test", filter.String())
+	var filterA Filter = "test"
+	var filterB Filter = "test"
+	assert.True(t, FilterEquals(&filterA, &filterB))
 }

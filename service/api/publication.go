@@ -27,7 +27,7 @@ type Publication interface {
 	GetOi4Source() BaseSource
 	GetResource() ResourceType
 	GetSource() *Oi4Identifier
-	GetFilter() Filter
+	GetFilter() *Filter
 	GetID() string
 	GetDataSetWriterId() uint16
 	GetPublicationMode() *PublicationMode
@@ -54,7 +54,7 @@ type PublicationMessage struct {
 	//publicationMode api.PublicationMode
 	//Data       any
 	//StatusCode StatusCode
-	Filter
+	*Filter
 	Content []PublicationContent
 }
 

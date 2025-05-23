@@ -1,0 +1,19 @@
+{
+  "Manufacturer":{"Locale":"en-US","Text":"ACME Corporation"},
+  "ManufacturerUri":"acme.com",
+  "Model":{"Locale":"en-US","Text":"SampleSubscriberApplication"},
+  "ProductCode":"OEC-ACME-GO-OT-SUBSCRIBER",
+  "HardwareRevision":"",
+  "SoftwareRevision":"0.12.1",
+  "DeviceRevision":"1.0.0",
+  "DeviceManual":"1.0",
+  "DeviceClass":"Utility",
+  "SerialNumber":"F12AB45",
+  "ProductInstanceUri":"oi4/appid/subscriber-service",
+  "RevisionCounter":0,
+  "Description":
+  {
+    "Locale":"en-US",
+    "Text":"An example OI4 service in Golang that subscribes to messages"
+  }
+}
