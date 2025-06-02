@@ -77,6 +77,10 @@ func (app *Oi4ApplicationImpl) GetServiceType() api.ServiceType {
 	return app.serviceType
 }
 
+func (app *Oi4ApplicationImpl) GetOI4Identifier() api.Oi4Identifier {
+	return *app.oi4Identifier
+}
+
 func (app *Oi4ApplicationImpl) GetApplicationSource() api.ApplicationSource {
 	return app.applicationSource
 }
