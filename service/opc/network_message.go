@@ -2,12 +2,34 @@ package opc
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/OI4/oi4-oec-service-go/service/api"
 )
 
-var counter uint16 = 0
+var lastTimestamp int64
+var counter int
+var messageIDMutex = sync.Mutex{}
+
+func GetMessageID(publisherID string) string {
+	messageIDMutex.Lock()
+	defer messageIDMutex.Unlock()
+
+	currentTimestamp := time.Now().UnixMilli()
+
+	if currentTimestamp <= lastTimestamp {
+		counter++
+	} else {
+		counter = 0
+		lastTimestamp = currentTimestamp
+	}
+
+	if counter == 0 {
+		return fmt.Sprintf("%d-%s", currentTimestamp, publisherID)
+	}
+	return fmt.Sprintf("%d-%d-%s", currentTimestamp, counter, publisherID)
+}
 
 // CreateNetworkMessage quick and dirty
 func CreateNetworkMessage(applicationOi4Identifier *api.Oi4Identifier, serviceType api.ServiceType, publication api.PublicationMessage) *api.NetworkMessage {
@@ -33,14 +55,13 @@ func CreateNetworkMessage(applicationOi4Identifier *api.Oi4Identifier, serviceTy
 	}
 
 	networkMessage := &api.NetworkMessage{
-		MessageId:      fmt.Sprintf("%d%d-%s/%s", currentTime.Unix(), counter, serviceType, applicationOi4Identifier.ToString()),
+		MessageId:      GetMessageID(applicationOi4Identifier.ToString()),
 		MessageType:    api.UA_DATA,
 		PublisherId:    fmt.Sprintf("%s/%s", serviceType, applicationOi4Identifier.ToString()),
 		DataSetClassId: resourceType.ToDataSetClassId(),
 		Messages:       messages,
 		CorrelationId:  correlationId,
 	}
-	counter++
 
 	return networkMessage
 
