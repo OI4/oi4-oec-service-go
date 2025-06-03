@@ -27,7 +27,7 @@ type Oi4ApplicationImpl struct {
 	oi4Identifier *api.Oi4Identifier
 	serviceType   api.ServiceType
 
-	mqttClient *mqtt.Client
+	mqttClient api.MqttClient
 
 	assets     map[api.Oi4Identifier]*AssetImpl
 	assetMutex sync.RWMutex
@@ -44,7 +44,7 @@ type Oi4ApplicationImpl struct {
 
 	scheduler api.IntervalPublicationScheduler
 
-	createMqttClientFn func(options *mqtt.ClientOptions) (*mqtt.Client, error)
+	createMqttClientFn func(options *api.MqttClientOptions) (api.MqttClient, error)
 }
 
 // CreateNewApplication Create a new Application host of a specific service type
@@ -99,12 +99,12 @@ func (app *Oi4ApplicationImpl) GetIntervalPublicationScheduler() api.IntervalPub
 	return app.scheduler
 }
 
-// Start application and connect to a broker
+// Start an application and connect to a broker
 func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
 	credentials := storage.SecretStorage.MqttCredentials
 	pwd, _ := credentials.Password()
-	mqttClientOptions := &mqtt.ClientOptions{
+	mqttClientOptions := &api.MqttClientOptions{
 		Host:     brokerConfig.Address,
 		Port:     int(brokerConfig.SecurePort),
 		Tls:      true,
@@ -140,7 +140,7 @@ func (app *Oi4ApplicationImpl) Stop() {
 }
 
 // RegisterPublication Register a publisher for the specific application
-// you can overwrite built-in publications like MAM, Health etc...
+// you can overwrite built-in publications like MAM, Health, etc...
 func (app *Oi4ApplicationImpl) RegisterPublication(publication api.Publication) error {
 	app.publicationMutex.Lock()
 	defer app.publicationMutex.Unlock()
@@ -405,7 +405,7 @@ func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
 	})
 }
 
-func (app *Oi4ApplicationImpl) newMqttClient(options *mqtt.ClientOptions) (*mqtt.Client, error) {
+func (app *Oi4ApplicationImpl) newMqttClient(options *api.MqttClientOptions) (api.MqttClient, error) {
 	if app.createMqttClientFn != nil {
 		return app.createMqttClientFn(options)
 	}
@@ -433,7 +433,7 @@ func getPublications(publications map[api.ResourceType][]api.Publication, resour
 
 type Option func(app *Oi4ApplicationImpl)
 
-func WithMqttClientFn(fn func(options *mqtt.ClientOptions) (*mqtt.Client, error)) Option {
+func WithMqttClientFn(fn func(options *api.MqttClientOptions) (api.MqttClient, error)) Option {
 	return func(app *Oi4ApplicationImpl) {
 		app.createMqttClientFn = fn
 	}
