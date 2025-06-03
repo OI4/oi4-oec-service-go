@@ -43,10 +43,12 @@ type Oi4ApplicationImpl struct {
 	logger *zap.SugaredLogger
 
 	scheduler api.IntervalPublicationScheduler
+
+	createMqttClientFn func(options *mqtt.ClientOptions) (*mqtt.Client, error)
 }
 
 // CreateNewApplication Create a new Application host of a specific service type
-func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger) (*Oi4ApplicationImpl, error) {
+func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger, options ...Option) (*Oi4ApplicationImpl, error) {
 	mam := applicationSource.GetMasterAssetModel()
 	scheduler := pub.NewIntervalPublicationSchedulerImpl(50, 5)
 	application := &Oi4ApplicationImpl{
@@ -69,6 +71,10 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		scheduler:         scheduler,
 	}
 	applicationSource.SetOi4Application(application)
+
+	for _, opt := range options {
+		opt(application)
+	}
 
 	return application, nil
 }
@@ -93,7 +99,7 @@ func (app *Oi4ApplicationImpl) GetIntervalPublicationScheduler() api.IntervalPub
 	return app.scheduler
 }
 
-// Start  application and connect to broker
+// Start application and connect to a broker
 func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
 	credentials := storage.SecretStorage.MqttCredentials
@@ -107,7 +113,7 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	}
 
 	var err error
-	if app.mqttClient, err = mqtt.NewClient(mqttClientOptions); err != nil {
+	if app.mqttClient, err = app.newMqttClient(mqttClientOptions); err != nil {
 		return err
 	}
 
@@ -236,6 +242,10 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 	}
 	app.logger.Debugf("Published message to topic: %s", topic.ToString())
 
+}
+
+func (app *Oi4ApplicationImpl) SendGetMessage(topic string, getMessage api.GetMessage) error {
+	return app.mqttClient.PublishResource(topic, getMessage)
 }
 
 func (app *Oi4ApplicationImpl) GetHandler() api.MessageHandler {
@@ -395,6 +405,13 @@ func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
 	})
 }
 
+func (app *Oi4ApplicationImpl) newMqttClient(options *mqtt.ClientOptions) (*mqtt.Client, error) {
+	if app.createMqttClientFn != nil {
+		return app.createMqttClientFn(options)
+	}
+	return mqtt.NewClient(options)
+}
+
 func getPublications(publications map[api.ResourceType][]api.Publication, resource api.ResourceType, filter *api.Filter) []api.Publication {
 	resourcePublications := publications[resource]
 	if resourcePublications == nil || filter == nil {
@@ -408,4 +425,16 @@ func getPublications(publications map[api.ResourceType][]api.Publication, resour
 	}
 
 	return nil
+}
+
+/******************************************************
+**Builder Option for creating a new Oi4ApplicationImpl  **
+******************************************************/
+
+type Option func(app *Oi4ApplicationImpl)
+
+func WithMqttClientFn(fn func(options *mqtt.ClientOptions) (*mqtt.Client, error)) Option {
+	return func(app *Oi4ApplicationImpl) {
+		app.createMqttClientFn = fn
+	}
 }

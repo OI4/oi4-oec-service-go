@@ -1,6 +1,8 @@
 package api
 
-import "go.uber.org/zap"
+import (
+	"go.uber.org/zap"
+)
 
 type Oi4Application interface {
 	GetServiceType() ServiceType
@@ -9,6 +11,7 @@ type Oi4Application interface {
 	GetLogger() *zap.SugaredLogger
 	ResourceChanged(resource ResourceType, source BaseSource, filter *Filter)
 	SendPublicationMessage(publication PublicationMessage)
+	SendGetMessage(topic string, getMessage GetMessage) error
 	GetIntervalPublicationScheduler() IntervalPublicationScheduler
 
 	PublicationProvider
