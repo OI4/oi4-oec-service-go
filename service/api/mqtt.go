@@ -19,7 +19,7 @@ type MessageHandler interface {
 	GetHandler() mqtt.MessageHandler
 }
 type MqttClient interface {
-	PublishResource(topic string, data interface{}) error
+	PublishResource(topic string, qos byte, data interface{}) error
 	RegisterGetHandler(serviceType ServiceType, appId Oi4Identifier, qos byte, handler MessageHandler) error
 	Subscribe(subscription Subscription) error
 	SubscribeToTopic(topic string, qos byte, handler MessageHandler) error

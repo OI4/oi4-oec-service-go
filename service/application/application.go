@@ -27,6 +27,8 @@ type Oi4ApplicationImpl struct {
 	oi4Identifier *api.Oi4Identifier
 	serviceType   api.ServiceType
 
+	qos byte
+
 	mqttClient api.MqttClient
 
 	assets     map[api.Oi4Identifier]*AssetImpl
@@ -48,7 +50,7 @@ type Oi4ApplicationImpl struct {
 }
 
 // CreateNewApplication Create a new Application host of a specific service type
-func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger, options ...Option) (*Oi4ApplicationImpl, error) {
+func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger, options ...Option) *Oi4ApplicationImpl {
 	mam := applicationSource.GetMasterAssetModel()
 	scheduler := pub.NewIntervalPublicationSchedulerImpl(50, 5)
 	application := &Oi4ApplicationImpl{
@@ -56,6 +58,8 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		mam:           &mam,
 		oi4Identifier: mam.ToOi4Identifier(),
 		serviceType:   serviceType,
+
+		qos: 1,
 
 		assets:     make(map[api.Oi4Identifier]*AssetImpl),
 		assetMutex: sync.RWMutex{},
@@ -76,7 +80,7 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		opt(application)
 	}
 
-	return application, nil
+	return application
 }
 
 func (app *Oi4ApplicationImpl) GetServiceType() api.ServiceType {
@@ -236,7 +240,7 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 		publication.Filter,
 	)
 
-	err := app.mqttClient.PublishResource(topic.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
+	err := app.mqttClient.PublishResource(topic.ToString(), app.qos, opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
 	if err != nil {
 		return
 	}
@@ -245,7 +249,7 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 }
 
 func (app *Oi4ApplicationImpl) SendGetMessage(topic string, getMessage api.GetMessage) error {
-	return app.mqttClient.PublishResource(topic, getMessage)
+	return app.mqttClient.PublishResource(topic, app.qos, getMessage)
 }
 
 func (app *Oi4ApplicationImpl) GetHandler() api.MessageHandler {
@@ -436,5 +440,11 @@ type Option func(app *Oi4ApplicationImpl)
 func WithMqttClientFn(fn func(options *api.MqttClientOptions) (api.MqttClient, error)) Option {
 	return func(app *Oi4ApplicationImpl) {
 		app.createMqttClientFn = fn
+	}
+}
+
+func WithQos(qos byte) Option {
+	return func(app *Oi4ApplicationImpl) {
+		app.qos = qos
 	}
 }

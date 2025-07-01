@@ -22,8 +22,7 @@ func TestWithMockMqttClient(t *testing.T) {
 	option := WithMqttClientFn(func(options *api.MqttClientOptions) (api.MqttClient, error) {
 		return mqttClientMock, nil
 	})
-	app, err := CreateNewApplication(api.ServiceTypeUtility, applicationSource, logger.Sugar(), option)
-	require.NoError(t, err)
+	app := CreateNewApplication(api.ServiceTypeUtility, applicationSource, logger.Sugar(), option)
 	require.NotNil(t, app)
 
 	require.Nil(t, app.mqttClient)
@@ -40,7 +39,7 @@ func TestWithMockMqttClient(t *testing.T) {
 		},
 	}
 
-	err = app.Start(storage)
+	err := app.Start(storage)
 	require.NoError(t, err)
 	assert.Equal(t, mqttClientMock, app.mqttClient)
 	assert.True(t, mqttClientMock.RegisterGetHandlerCalled)
@@ -65,7 +64,7 @@ func (m *MqttClientMock) Stop() {
 	panic("implement me")
 }
 
-func (m *MqttClientMock) PublishResource(topic string, msg interface{}) error {
+func (m *MqttClientMock) PublishResource(topic string, _ byte, msg interface{}) error {
 	if m.PublishResourceFunc != nil {
 		return m.PublishResourceFunc(topic, msg)
 	}

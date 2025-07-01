@@ -46,7 +46,7 @@ func NewClient(options *api.MqttClientOptions) (*Client, error) {
 	}
 }
 
-func (client *Client) PublishResource(topic string, data interface{}) error {
+func (client *Client) PublishResource(topic string, qos byte, data interface{}) error {
 	marshalledString, err := json.Marshal(data)
 	if err != nil {
 		return err
