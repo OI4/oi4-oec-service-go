@@ -20,7 +20,7 @@ type Client struct {
 func NewClient(options *api.MqttClientOptions) (*Client, error) {
 	clientOptions := mqtt.NewClientOptions()
 
-	clientOptions.SetClientID("client")
+	clientOptions.SetClientID(options.ClientId)
 	if options.Tls {
 		clientOptions.AddBroker(fmt.Sprintf("ssl://%s:%d", options.Host, options.Port))
 		tlsConfig, err := tls.NewTLSConfig(options.Ca_certificate_pem, options.Client_certificate_pem, options.Client_private_key_pem, options.TlsVerify)

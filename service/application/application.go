@@ -114,6 +114,7 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 		Tls:      true,
 		Username: credentials.Username(),
 		Password: pwd,
+		ClientId: app.oi4Identifier.SerialNumber,
 	}
 
 	var err error

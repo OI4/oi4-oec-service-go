@@ -13,6 +13,7 @@ type MqttClientOptions struct {
 	Client_certificate_pem        string
 	Ca_certificate_pem            string
 	TlsVerify                     bool
+	ClientId                      string
 }
 
 type MessageHandler interface {
