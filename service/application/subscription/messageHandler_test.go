@@ -72,6 +72,14 @@ type applicationMockImpl struct {
 	logger *zap.SugaredLogger
 }
 
+func (a *applicationMockImpl) GetOi4Identifier() api.Oi4Identifier {
+	panic("implement me")
+}
+
+func (a *applicationMockImpl) SendGetMessage(_ string, _ api.GetMessage) error {
+	panic("implement me")
+}
+
 func (a *applicationMockImpl) GetServiceType() api.ServiceType {
 	return api.ServiceTypeUtility
 }

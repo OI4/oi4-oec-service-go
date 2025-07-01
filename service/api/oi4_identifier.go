@@ -83,9 +83,13 @@ func (ident *Oi4Identifier) ToPlainString() string {
 }
 
 func (ident *Oi4Identifier) ToString() string {
-	return fmt.Sprintf("%s/%s/%s/%s", strings.ToLower(ident.ManufacturerUri), dnp.Encode(ident.Model), dnp.Encode(ident.ProductCode), dnp.Encode(ident.SerialNumber))
+	return Oi4IdentifierToString(*ident)
 }
 
 func (ident *Oi4Identifier) Equals(other *Oi4Identifier) bool {
 	return ident.ManufacturerUri == other.ManufacturerUri && ident.Model == other.Model && ident.ProductCode == other.ProductCode && ident.SerialNumber == other.SerialNumber
+}
+
+func Oi4IdentifierToString(ident Oi4Identifier) string {
+	return fmt.Sprintf("%s/%s/%s/%s", strings.ToLower(ident.ManufacturerUri), dnp.Encode(ident.Model), dnp.Encode(ident.ProductCode), dnp.Encode(ident.SerialNumber))
 }

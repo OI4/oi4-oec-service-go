@@ -27,7 +27,9 @@ type Oi4ApplicationImpl struct {
 	oi4Identifier *api.Oi4Identifier
 	serviceType   api.ServiceType
 
-	mqttClient *mqtt.Client
+	qos byte
+
+	mqttClient api.MqttClient
 
 	assets     map[api.Oi4Identifier]*AssetImpl
 	assetMutex sync.RWMutex
@@ -43,10 +45,12 @@ type Oi4ApplicationImpl struct {
 	logger *zap.SugaredLogger
 
 	scheduler api.IntervalPublicationScheduler
+
+	createMqttClientFn func(options *api.MqttClientOptions) (api.MqttClient, error)
 }
 
 // CreateNewApplication Create a new Application host of a specific service type
-func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger) (*Oi4ApplicationImpl, error) {
+func CreateNewApplication(serviceType api.ServiceType, applicationSource api.ApplicationSource, logger *zap.SugaredLogger, options ...Option) *Oi4ApplicationImpl {
 	mam := applicationSource.GetMasterAssetModel()
 	scheduler := pub.NewIntervalPublicationSchedulerImpl(50, 5)
 	application := &Oi4ApplicationImpl{
@@ -54,6 +58,8 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 		mam:           &mam,
 		oi4Identifier: mam.ToOi4Identifier(),
 		serviceType:   serviceType,
+
+		qos: 1,
 
 		assets:     make(map[api.Oi4Identifier]*AssetImpl),
 		assetMutex: sync.RWMutex{},
@@ -70,11 +76,19 @@ func CreateNewApplication(serviceType api.ServiceType, applicationSource api.App
 	}
 	applicationSource.SetOi4Application(application)
 
-	return application, nil
+	for _, opt := range options {
+		opt(application)
+	}
+
+	return application
 }
 
 func (app *Oi4ApplicationImpl) GetServiceType() api.ServiceType {
 	return app.serviceType
+}
+
+func (app *Oi4ApplicationImpl) GetOi4Identifier() api.Oi4Identifier {
+	return *app.oi4Identifier
 }
 
 func (app *Oi4ApplicationImpl) GetApplicationSource() api.ApplicationSource {
@@ -89,12 +103,12 @@ func (app *Oi4ApplicationImpl) GetIntervalPublicationScheduler() api.IntervalPub
 	return app.scheduler
 }
 
-// Start  application and connect to broker
+// Start an application and connect to a broker
 func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	brokerConfig := storage.MessageBusStorage.BrokerConfiguration
 	credentials := storage.SecretStorage.MqttCredentials
 	pwd, _ := credentials.Password()
-	mqttClientOptions := &mqtt.ClientOptions{
+	mqttClientOptions := &api.MqttClientOptions{
 		Host:     brokerConfig.Address,
 		Port:     int(brokerConfig.SecurePort),
 		Tls:      true,
@@ -103,7 +117,7 @@ func (app *Oi4ApplicationImpl) Start(storage container.Storage) error {
 	}
 
 	var err error
-	if app.mqttClient, err = mqtt.NewClient(mqttClientOptions); err != nil {
+	if app.mqttClient, err = app.newMqttClient(mqttClientOptions); err != nil {
 		return err
 	}
 
@@ -130,7 +144,7 @@ func (app *Oi4ApplicationImpl) Stop() {
 }
 
 // RegisterPublication Register a publisher for the specific application
-// you can overwrite built-in publications like MAM, Health etc...
+// you can overwrite built-in publications like MAM, Health, etc...
 func (app *Oi4ApplicationImpl) RegisterPublication(publication api.Publication) error {
 	app.publicationMutex.Lock()
 	defer app.publicationMutex.Unlock()
@@ -226,12 +240,16 @@ func (app *Oi4ApplicationImpl) SendPublicationMessage(publication api.Publicatio
 		publication.Filter,
 	)
 
-	err := app.mqttClient.PublishResource(topic.ToString(), opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
+	err := app.mqttClient.PublishResource(topic.ToString(), app.qos, opc.CreateNetworkMessage(app.mam.ToOi4Identifier(), app.serviceType, publication))
 	if err != nil {
 		return
 	}
 	app.logger.Debugf("Published message to topic: %s", topic.ToString())
 
+}
+
+func (app *Oi4ApplicationImpl) SendGetMessage(topic string, getMessage api.GetMessage) error {
+	return app.mqttClient.PublishResource(topic, app.qos, getMessage)
 }
 
 func (app *Oi4ApplicationImpl) GetHandler() api.MessageHandler {
@@ -391,6 +409,13 @@ func (app *Oi4ApplicationImpl) sendGracefulShutdown() {
 	})
 }
 
+func (app *Oi4ApplicationImpl) newMqttClient(options *api.MqttClientOptions) (api.MqttClient, error) {
+	if app.createMqttClientFn != nil {
+		return app.createMqttClientFn(options)
+	}
+	return mqtt.NewClient(options)
+}
+
 func getPublications(publications map[api.ResourceType][]api.Publication, resource api.ResourceType, filter *api.Filter) []api.Publication {
 	resourcePublications := publications[resource]
 	if resourcePublications == nil || filter == nil {
@@ -404,4 +429,22 @@ func getPublications(publications map[api.ResourceType][]api.Publication, resour
 	}
 
 	return nil
+}
+
+/******************************************************
+**Builder Option for creating a new Oi4ApplicationImpl  **
+******************************************************/
+
+type Option func(app *Oi4ApplicationImpl)
+
+func WithMqttClientFn(fn func(options *api.MqttClientOptions) (api.MqttClient, error)) Option {
+	return func(app *Oi4ApplicationImpl) {
+		app.createMqttClientFn = fn
+	}
+}
+
+func WithQos(qos byte) Option {
+	return func(app *Oi4ApplicationImpl) {
+		app.qos = qos
+	}
 }

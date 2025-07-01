@@ -13,24 +13,11 @@ var (
 	ErrNoAuthInformation = errors.New("no auth information provided, please provide either a mTLS certificate or username/password")
 )
 
-type ClientOptions struct {
-	Host                          string
-	Tls                           bool
-	Port                          int
-	Username                      string
-	Password                      string
-	Client_private_key_pem        string
-	Client_private_key_passphrase string
-	Client_certificate_pem        string
-	Ca_certificate_pem            string
-	TlsVerify                     bool
-}
-
 type Client struct {
 	client mqtt.Client
 }
 
-func NewClient(options *ClientOptions) (*Client, error) {
+func NewClient(options *api.MqttClientOptions) (*Client, error) {
 	clientOptions := mqtt.NewClientOptions()
 
 	clientOptions.SetClientID("client")
@@ -59,7 +46,7 @@ func NewClient(options *ClientOptions) (*Client, error) {
 	}
 }
 
-func (client *Client) PublishResource(topic string, data interface{}) error {
+func (client *Client) PublishResource(topic string, qos byte, data interface{}) error {
 	marshalledString, err := json.Marshal(data)
 	if err != nil {
 		return err
