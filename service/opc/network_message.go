@@ -39,6 +39,7 @@ func CreateNetworkMessage(applicationOi4Identifier *api.Oi4Identifier, serviceTy
 	}
 
 	source := publication.Source
+	publisherId := fmt.Sprintf("%s/%s", serviceType, applicationOi4Identifier.ToString())
 	resourceType := publication.Resource
 	assetOi4Identifier := publication.Source
 	correlationId := publication.CorrelationId
@@ -55,9 +56,9 @@ func CreateNetworkMessage(applicationOi4Identifier *api.Oi4Identifier, serviceTy
 	}
 
 	networkMessage := &api.NetworkMessage{
-		MessageId:      GetMessageID(applicationOi4Identifier.ToString()),
+		MessageId:      GetMessageID(publisherId),
 		MessageType:    api.UA_DATA,
-		PublisherId:    fmt.Sprintf("%s/%s", serviceType, applicationOi4Identifier.ToString()),
+		PublisherId:    publisherId,
 		DataSetClassId: resourceType.ToDataSetClassId(),
 		Messages:       messages,
 		CorrelationId:  correlationId,

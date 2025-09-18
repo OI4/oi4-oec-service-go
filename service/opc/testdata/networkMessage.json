@@ -1,0 +1,50 @@
+{
+  "MessageId": "1728467615743-OTConnector/acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35",
+  "MessageType": "ua-data",
+  "DataSetClassId": "360ca8f3-5e66-42a2-8f10-9cdf45f4bf58",
+  "PublisherId": "OTConnector/acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35",
+  "Messages": [
+    {
+      "DataSetWriterId": 10,
+      "Timestamp": "2024-10-09T09:53:35.743Z",
+      "Source": "acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35",
+      "Payload": {
+        "Manufacturer": {
+          "Locale": "en-US",
+          "Text": "ACME Corporation"
+        },
+        "ManufacturerUri": "acme.com",
+        "Model": {
+          "Locale": "en-US",
+          "Text": "OEC Demo OT Connector"
+        },
+        "ProductCode": "OEC-ACME-WEATHER-CONNECTOR",
+        "HardwareRevision": "",
+        "SoftwareRevision": "0.12.1",
+        "DeviceRevision": "1.0.0",
+        "DeviceManual": "1.0",
+        "DeviceClass": "OTConnector",
+        "SerialNumber": "F12AB35",
+        "ProductInstanceUri": "acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35",
+        "RevisionCounter": 0,
+        "Description": {
+          "Locale": "en-US",
+          "Text": "An example OI4 service"
+        }
+      }
+    },
+    {
+      "DataSetWriterId": 2,
+      "Timestamp": "2024-10-09T09:53:35.743Z",
+      "Source": "acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35",
+      "Payload": {
+        "TotalCount": 1,
+        "PerPage": 1,
+        "Page": 1,
+        "HasNext": false,
+        "PaginationId": "1728467615743-OTConnector/acme.com/OEC,20Demo,20OT,20Connector/OEC-ACME-WEATHER-CONNECTOR/F12AB35"
+      }
+    }
+  ],
+  "CorrelationId": ""
+}

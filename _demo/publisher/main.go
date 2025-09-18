@@ -60,11 +60,7 @@ func main() {
 
 	applicationSource := source.NewApplicationSourceImpl(*mam, option, ltOption)
 
-	oi4Application, err := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource, logger)
-	if err != nil {
-		logger.Fatal("Failed to create application:", err)
-		panic(err)
-	}
+	oi4Application := application.CreateNewApplication(api.ServiceTypeOTConnector, applicationSource, logger)
 
 	if err = oi4Application.Start(*storage); err != nil {
 		logger.Fatal("Failed to start application:", err)
